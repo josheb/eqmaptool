@@ -1,0 +1,376 @@
+<html>
+
+<head>
+    <title>EQ Map Tool</title>
+    <style>
+        body {
+            margin: 0px;
+            padding: 0px;
+            font-family: Verdana, Arial;
+            font-size: 10px;
+        }
+        td {
+            font-family: Verdana, Arial;
+            font-size: 12px;
+        }
+        .ui-popup {
+            display: none;
+        }
+        .ui-base {
+            padding: 4px;
+            margin: 0px;
+            border: 1px solid #888888;
+            background-color: #FFFFFF;
+            opacity: 0.8;
+        }
+        #statustext {
+            font-family: Verdana, Arial;
+            font-size: 10px;
+        }
+        #load {
+            position: absolute;
+            top: 0px;
+            left: 800px;
+        }
+        #info {
+            width: 300px;
+        }
+        .tdul {
+            border-bottom: 1px solid black;
+            border-top: 1px solid black;
+            background-color: rgba(100, 100, 100, 0.5);
+        }
+        #editframe {
+            border: 0px;
+            margin: 0px;
+            padding: 0px;
+            width: 100%;
+            height: 100%;
+        }
+		.inline_image{
+			position: relative;
+			width: 100%;
+		}
+		.text_inline_image {
+			position: absolute;
+			bottom: -15px;
+			left: 0px;
+			width: 100%;
+			font-size: 11px;
+			display: inline;
+			font-size: 9px;
+			color: white;
+			text-align:center;
+		}
+		.desc_inline_image {
+			position: absolute;
+			top: -260%;
+			left: -13%;
+			max-width: 32px !important;
+			font-size: 10px;
+			display: inline;
+			color: yellow;
+			text-align:center;
+		}
+		.button_awesome_font_icon {
+			position: absolute;
+			bottom: 10%;
+			left: 10%;
+			max-width: 32px !important;
+			font-size: 9px;
+			display: inline;
+			color: black;
+			text-align:center;
+		}
+		.glow{
+			color: #fff;
+			text-shadow: -1px 1px 80px #ffc, 1px -1px 80px #fff;
+		}
+    </style>
+	<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="css/smoothness/jquery-ui-1.10.2.custom.css" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="js/Gritter-master/css/jquery.gritter.css" />
+    <script src="js/jquery-1.9.1.js"></script>
+    <script src="js/jquery-ui-1.10.2.custom.min.js"></script>
+    <script src="js/ui_dialogfix.js"></script>
+    <script src="js/jquery.cookie.js"></script>
+	<script src="js/Gritter-master/js/jquery.gritter.min.js"></script>
+    <script src="js/three.js"></script>
+    <script src="js/Detector.js"></script>
+    <script src="js/controls/OrbitControls_EQEmu_Map_Editor.js"></script>
+    <script src="js/controls/FlyControls.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+</head>
+
+<body>
+	<div id="big_loader" style="display:inline"></div>
+	<div id="big_loader_text" style="display:inline"></div>
+	<div id="sound_container" style="display:inline"></div>
+    <div id=toolbar class="ui-base ui_window" style="position: absolute; top: 0px; left: 0px;">
+        <table border=0 cellspacing=0 cellpadding=0>
+            <tr>
+                <td valign=top>
+                    <div id=info></div>
+                </td>
+                <td valign=top>
+                    <nobr>
+                        <img src=images/w_target.gif onClick='toggleWin("selection");' title="Target" alt="Target">|
+                        <img src=images/w_zoneobj.gif onClick='toggleWin("currentzone");' title="Zone Objects" alt="Zone Objects">|
+                        <img src=images/w_editor.gif onClick='toggleWin("editor");' title="Editor" alt="Editor">|
+                        <img src=images/w_toolbar.gif onClick='toggleWin("sidenav");' title="Tool Bar" alt="Tool Bar">|
+                        <img src=images/w_settings.gif onClick='toggleWin("settings");' title="Settings" alt="Settings">|
+                        <img src=images/w_status.gif onClick='toggleWin("status");' title="Status" alt="Status">|
+                        <img src=images/w_help.gif onClick='toggleWin("help");' title="Help" alt="Help">|
+                        <button type=button onClick='toggleWin("zonemenu");' style='background-color: #55FF55;' id=zlbutton>Zone List</button>
+                    </nobr>
+                </td>
+            </tr>
+        </table>
+    </div>
+    <div id=editor title="Editor" class="ui-popup ui_window">
+        <iframe border=0 id=editframe></iframe>
+    </div>
+    <div id=sidenav title="Tool Bar" class="ui_window">
+        <div id=tool_acc_map>
+            <h3>Map Tools</h3>
+            <div>
+				<div class="inline_image" style="display:inline">
+					<img src=images/cam_to_cursor.gif onClick='gotoObject(user.cursor);' title="Camera to Cursor" alt="Camera to Cursor">
+					<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+1</h4>
+				</div>
+				<div class="inline_image" style="display:inline">
+					<img src=images/cam_to_target.gif onClick='gotoObject(user.curobject);' title="Camera to Selection" alt="Camera to Selection">
+					<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+2</h4>
+				</div>
+                <div class="inline_image" style="display:inline">
+					<img src=images/target_to_cursor.gif onClick='selToCursor();' title="Selection to Cursor" alt="Selection to Cursor">
+					<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+3</h4>
+				</div>
+                <div class="inline_image" style="display:inline">
+					<img src=images/cursor_to_target.gif onClick='cursorToSel();' title="Cursor to Selection" alt="Cursor to Selection">
+					<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+4</h4>
+				</div>
+            </div>
+        </div>
+        <div id=tool_palette>
+            <h3>Palette</h3>
+            <div>
+                <div id=c_palette></div>
+            </div>
+        </div>
+        <div id=tool_unsaved>
+            <h3>Unsaved Objects</h3>
+            <div>
+                <div id=c_unsaved></div>
+            </div>
+        </div>
+	
+    </div>
+    <div id=zonemenu title="Zone List" class="ui_window">
+        <div id=zonecontent></div>
+    </div>
+    <div id=status title="Status" class="ui_window">
+        <div id=statustext>
+        </div>
+    </div>
+    <div id=load class="ui-popup ui-base ui_window">
+    </div>
+    <div id=help title="Help" class="ui-base ui_window">
+        Basic Movement: WASD
+        <br>Pitch/Roll: Mouse / Arrow Keys
+        <br>Ascend / Descend: R/F
+        <br>Rotate: Q/E
+        <br>Adjust Speed: +/-
+        <br>Toggle Mouselook: M
+        <br>Pause All Camera Controls: X
+        <br>
+        <p>
+            To rotate or move objects, click the appropriate handle and move the mouse left or right.
+        </p>
+        <div id=meminfo>
+        </div>
+    </div>
+    <div id=settings title="Settings" class="ui-base ui_window">
+        <form method=get onSubmit='return(false);'>
+            <table border=0 cellspacing=0 cellpadding=2 width=100%>
+                <tr>
+                    <td>Camera Speed</td>
+                    <td>
+                        <input type=text name=s_speed size=4>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Map Version</td>
+                    <td>
+                        <input type=text name=s_version size=2>
+                    </td>
+                </tr>
+                <tr>
+                    <td valign=top>Map Material</td>
+                    <td valign=top>
+                        <input type=radio name=s_mapmat value='standard' checked>Standard Material
+                        <br>
+                        <input type=radio name=s_mapmat value='normal'>Planar Normal Material
+                        <br>
+                        <input type=radio name=s_mapmat value='trans'>Translucent Material
+                    </td>
+                </tr>
+                <tr>
+                    <td>&nbsp;</td>
+                    <td>
+                        <button type=button onClick='updateSettings();'>Update</button>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+    <div id=currentzone title="Current Zone" class="ui-base ui_window"> 
+        <div id=zoneinfo>
+            <ul>
+                <li><a href=#z_spawns>Spawns</a>
+                </li>
+                <li><a href=#z_grids>Grids</a>
+                </li>
+                <li><a href=#z_obj>Objects</a>
+                </li>
+                <li><a href=#z_doors>Doors</a>
+                </li>
+                <li><a href=#z_gspawns>Ground Spawns</a>
+                </li>
+                <li><a href=#z_search>Search</a>
+                </li>
+            </ul>
+            <div id=z_spawns>
+                <div id=zd_spawns></div>
+            </div>
+            <div id=z_grids>
+                <div id=zd_grids></div>
+            </div>
+            <div id=z_obj>
+                <div id=zd_obj></div>
+            </div>
+            <div id=z_doors>
+                <div id=zd_doors></div>
+            </div>
+            <div id=z_gspawns>
+                <div id=zd_gspawns></div>
+            </div>
+            <div id=z_search><nobr>Search: 
+                <select name=search_type id=search_type>
+                    <option value='npc'>NPC</option>
+                    <option value='spawngroup'>Spawn Group</option>
+                </select>
+                <select name=search_field id=search_field>
+                    <option value='name'>Name</option>
+                    <option value='id'>ID</option>
+                </select>
+                <input type=text name=search_value id=search_value>
+                <button type=button onClick='doSearch();'>Search</button><hr>
+                <div id=zd_searchres></div>
+            </div>
+        </div>
+    </div>
+    <div id=selection title="Target" class="ui-base ui_window"> 
+        <div id=acc_sel_i>
+            <h3>Info</h3>
+            <div>
+                <div id=sel_info></div>
+            </div>
+        </div>
+        <div id=acc_sel_o>
+            <h3>Options</h3>
+            <div>
+                <div id=sel_options></div>
+                <div id=sel_heading>
+                </div>
+                <hr>
+                <table border=0 cellspacing=0 cellpadding=2 width=100%>
+                    <tr>
+                        <td bgcolor=#555555><font color=#FF0000>X:</font>
+                            <input type=text id=selx name=selx size=4 tabindex="-1">
+                        </td>
+                        <td bgcolor=#555555><font color=#00FF00>Y:</font>
+                            <input type=text id=sely name=sely size=4 tabindex="-1">
+                        </td>
+                        <td bgcolor=#555555><font color=#0000FF>Z:</font>
+                            <input type=text id=selz name=selz size=4 tabindex="-1">
+                        </td>
+                        <td bgcolor=#555555><font color=#FF00FF>H:</font>
+                            <input type=text id=selh name=selh size=4 tabindex="-1">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <button type=button onClick='saveSelPos();'>Save</button>
+                        </td>
+                        <td>
+                            <button type=button onClick='selToZ();'>FindZ</button>
+                        </td>
+                        <td>
+                            <button type=button onClick='resetSelPos();'>Reset</button>
+                        </td>
+                        <td>
+                            <button type=button onClick='editSel();'>Edit</button>
+                        </td>
+                    </tr>
+					<tr>
+                        <td>
+                            <div class="inline_image" style="display:inline">
+								<a href="javascript:;" onClick="ToggleHEdit();">
+									<img src=images/button_blank.gif title="Edit Heading" alt="Edit Heading">
+									<i class="fa fa-compass button_awesome_font_icon" style="font-size:30px"></i>
+									<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="desc_inline_image">Heading</h4>
+									<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+5</h4>
+								</a>
+							</div>
+							
+                        </td>
+                       
+                    </tr>
+					<tr>
+						<td>
+							<br>
+						</td>
+					</tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+
+<footer>
+	<script type="text/javascript">
+	
+		$(document).keydown(function (e){
+			// console.log('key code is: ' + e.which + ' ' + (e.ctrlKey ? 'Ctrl' : '') + ' ' + (e.shiftKey ? 'Shift' : '') + ' ' + (e.altKey ? 'Alt' : ''));
+			if(e.altKey && e.which == 49){ // Alt + 1 - Camera To Cursor
+				gotoObject(user.cursor); 	
+				DoGritterNotify('Hotkey Trigger', '<b>Alt + 1</b> Camera Loaded to Cursor');
+			} 
+			if(e.altKey && e.which == 50){ // Alt + 2 - Camera to Selection
+				gotoObject(user.curobject); 	
+				DoGritterNotify('Hotkey Trigger', '<b>Alt + 2</b> Camera to Selection');
+			} 
+			if(e.altKey && e.which == 51){ // Alt + 3 - Selection to Cursor
+				selToCursor(); 			
+				DoGritterNotify('Hotkey Trigger', '<b>Alt + 3</b> Selection to Cursor <br><b style="color:#FFFF00">(Position SAVED in DB)</b>');				
+			} 
+			if(e.altKey && e.which == 52){ // Alt + 4 - Cursor to Selection
+				cursorToSel();		
+				DoGritterNotify('Hotkey Trigger', '<b>Alt + 4</b> Cursor to Selection');
+			} 
+			if(e.altKey && e.which == 53){ // Alt + 5 - Move Z
+				ToggleHEdit();
+			} 
+			if(e.altKey && e.which == 90){ // Find Best Z for Selection
+				selToZ();
+				DoGritterNotify('Hotkey Trigger', '<b>Alt + Z</b> Find best Z for selection');
+			} 
+		});
+		document.getElementById('editor').focus();
+		
+	</script>
+</footer>
+
+</html>
