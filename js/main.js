@@ -85,8 +85,8 @@ $(document).ready( function() {
     $(document.forms[0].s_speed).val(settings.movespeed);
 
     /* Stop camera functions when a text box is focused. */
-    $("input").on("focus", function() { startText(); });
-    $("input").on("blur", function() { endText(); });
+    //$("input").on("focus", function() { startText(); });
+    //$("input").on("blur", function() { endText(); });
 	
 	/* If any UI window is hovered over, stop other controls */
 	$(".ui_window").mouseenter(function() { startText(); });
@@ -413,6 +413,7 @@ function procData(d)
             spawndata[count].y = spret.y;
             spawndata[count].z = spret.z;
             spawndata[count].heading = spret.heading;
+            spawndata[count].name = spret.name;
             setSaved(res.spawns[count]);
             log("Spawn Saved: " + count);
             break;
@@ -548,10 +549,15 @@ function updateSpawns(d, spawncount)
         {
             var npc = spawndata[x].entries[y];
 
-            npclist[npc.id] = npc;
+            npclist[npc.npcid] = spawndata[x].entries[y];
+            //The json doesn't come with id because it collides with spawn.  We do this for consistency later.
+            npclist[npc.npcid].id = npc.npcid;
 
             spawnstr += "<tr><td> &nbsp; &nbsp; " + npc.name + "</td><td>L" + npc.level + "</td><td align=right>" + npc.chance + "% &nbsp; <img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.npcid + " });'>";
-            spawnstr += "<img src=images/add.gif onClick='addToPalette(\"npc\", "+npc.npcid+", "+x+", "+y+");' title='Add NPC to Palette'></td></tr>";
+            spawnstr += "<img src=images/add.gif onClick='addToPalette(\"npc\", "+ npc.npcid + ", -1, -1);' title='Add NPC to Palette'></td></tr>";
+
+            //We've cached the NPC in the master list, switch this to an ID reference for global access.
+            spawndata[x].entries[y] = npc.npcid;
         }
 
         res.spawns[x] = new THREE.Mesh( res.cube, res.spawnmat );
@@ -567,7 +573,7 @@ function updateSpawns(d, spawncount)
 
         res.spawns[x].userData.objtype = "spawn";
         res.spawns[x].userData.uid = x;
-        res.spawns[x].userData.entry = -1;
+        res.spawns[x].userData.entry = spawndata[x].spawngroupID;
         res.spawns[x].userData.dirty = false;
         res.spawns[x].add(res.spawns[x].userData.hmesh);
         scene.add(res.spawns[x]);
@@ -1011,7 +1017,7 @@ function setTarget(tp, id1, id2, obj)
 
     for(var x in spawnlist.entries)
     {
-        var npc = spawnlist.entries[x];
+        var npc = npclist[spawnlist.entries[x]];
         infostr += "<tr><td>" + npc.name + "</td><td>L" + npc.level + "</td><td align=right>" + npc.chance + "% &nbsp; <img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.npcid + " });' title='Edit NPC'>";
         infostr += "<img src=images/add.gif onClick='addToPalette(\"npc\", " + npc.npcid + ", " + id1 + ", " + x + ");' title='Add NPC to Palette'></td></tr>";
     }
@@ -1020,7 +1026,7 @@ function setTarget(tp, id1, id2, obj)
     $("#sel_info").append(infostr);
 
     $("#sel_heading").empty();
-    $("#sel_heading").append( "<b>" + tp + ": <input type=text name='selname' id='selname' value=''></b><img src=images/add.gif onClick='addToPalette(\"spawngroup\", id1, -1, -1);' title='Add SpawnGroup to Palette'>");
+    $("#sel_heading").append( "<b>" + tp + ": <input type=text name='selname' id='selname' value=''></b><img src=images/add.gif onClick='addToPalette(\"spawngroup\", " + id1 + ", -1, -1);' title='Add SpawnGroup to Palette'>");
     $("#selname").val(spawnlist.name);
 
     updateSelPos();
@@ -1186,7 +1192,21 @@ function ToggleHEdit()
 
 function addToPalette(type, data)
 {
+    switch(type)
+    {
+        case "npc":
+            tracker.npcs.push(data);
+            updatePalette();
+            //alert(npclist[data].name);
+            break;
 
+        case "spawngroup":
+            tracker.spawngroups.push(data);
+            updatePalette();
+
+        default:
+            break;
+    }
 }
 
 function setEdited(obj)
@@ -1251,7 +1271,71 @@ function updateUnsaved()
 
 function updatePalette()
 {
+    var pstr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
 
+    for(var x = 0; x < tracker.npcs.length; x++)
+    {
+        var npc = npclist[tracker.npcs[x]];
+        var ckstr = "";
+        if($("#pc_npc_"+x).is(':checked')) { ckstr = " checked"; }
+        pstr += "<tr><td>" + npc.name + "</td><td>" + npc.level + "</td>";
+        pstr += "<td align=right><input type=checkbox class='pcheck pc_npc' id='pc_npc_"+x+"' onClick='pSelect(\"npc\", "+x+", this);'" + ckstr + "> ";
+        pstr += "<img src=images/delete.gif onClick='delFromPalette(\"npc\", "+x+");' title='Remove From Palette' alt='Remove From Palette'></td>";
+        pstr += "</tr>";
+    }
+
+    pstr += "<tr><td colspan=3><hr></td></tr>";
+
+    var sgsel = $('input[name=sgselect]:checked').val();
+    for(var x = 0; x < tracker.spawngroups.length; x++)
+    {
+        var sg = spawndata[tracker.spawngroups[x]];
+        var ckstr = "";
+        if(x == sgsel) { ckstr = " checked"; }
+        pstr += "<tr><td colspan=2>" + sg.name + "</td>";
+        //pstr += "<td align=right><input type=checkbox class='pcheck pc_spawngroup' id='pc_spawngroup_"+x+"' onClick='pSelect(\"spawngroup\", "+x+", this);'> ";
+        pstr += "<td align=right><input type=radio class='pradio' name=sgselect value='"+x+"' onClick='pSelect(\"spawngroup\", "+x+", this);'" + ckstr + "> ";
+        pstr += "<img src=images/delete.gif onClick='delFromPalette(\"spawngroup\", "+x+");' title='Remove From Palette' alt='Remove From Palette'></td>";
+        pstr += "</tr>";
+    }
+
+    pstr += "</table>";
+
+    $("#c_palette").empty();
+    $("#c_palette").append(pstr);
+}
+
+function pSelect(type, id, sender)
+{
+    switch(type)
+    {
+        case "npc":
+            break;
+
+        case "spawngroup":
+            break;
+
+        default:
+            break;
+    }
+}
+
+function delFromPalette(type, id)
+{
+    switch(type)
+    {
+        case "npc":
+            tracker.npcs.splice(id, 1);
+            break;
+
+        case "spawngroup":
+            tracker.spawngroups.splice(id, 1);
+            break;
+
+        default:
+            break;
+    }
+    updatePalette();
 }
 
 function doSearch()
@@ -1269,13 +1353,57 @@ function showSearch(d, type)
     var searchres = JSON.parse(d);
 
     var sstr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
+
+    //Right now we only search NPC's
+    sstr += "<tr><td><b>Name</b></td><td><b>Level</b></td><td><b>ID</b></td><td>&nbsp;</td></tr>";
     for(var x in searchres)
     {
-        sstr += "<tr><td>" + searchres[x].name + "</td><td>" + searchres[x].id + "</td>";
+        sstr += "<tr><td>" + searchres[x].name + "</td><td>" + searchres[x].level + "</td><td>" + searchres[x].id + "</td>";
+        sstr += "<td><img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + searchres[x].id + " });' title='Edit NPC'>";
+        sstr += "<img src=images/add.gif onClick='addToPalette(\"npc\", " + searchres[x].id + ", -1, -1);' title='Add NPC to Palette'></td>";
         sstr += "</tr>";
+
+        //We might eventually want to store this in a current search object and only use the persistent cache for results that get used.
+        //Even if this is already there, this version should be the most current.
+        npclist[searchres[x].id] = searchres[x];
     }
     sstr += "</table>";
 
     $("#zd_searchres").empty();
     $("#zd_searchres").append(sstr);
+}
+
+function addSpawngroup()
+{
+    var sgsel = $('input[name=sgselect]:checked').val();
+    if(sgsel === undefined) { return; }
+
+    var sgid = tracker.spawngroups[sgsel];
+    log("New SG: " + sgid);
+}
+
+function createSpawngroup()
+{
+    for(var x = 0; x < tracker.npcs.length; x++)
+    {
+        var npc = npclist[tracker.npcs[x]];
+
+        if($("#pc_npc_"+x).is(':checked'))
+        {
+            log("New SG Entry: " + npc.name);
+        }
+    }
+}
+
+function insertNPCS()
+{
+    for(var x = 0; x < tracker.npcs.length; x++)
+    {
+        var npc = npclist[tracker.npcs[x]];
+
+        if($("#pc_npc_"+x).is(':checked'))
+        {
+            log("Insert Entry: " + npc.name);
+        }
+    }
 }

@@ -157,6 +157,10 @@
             <h3>Palette</h3>
             <div>
                 <div id=c_palette></div>
+                <hr>
+                <button type=button onClick='addSpawngroup();'>Add SG to Cursor</button>
+                <button type=button onClick='createSpawngroup();'>Create SG from NPC's at Cursor</button>
+                <button type=button onClick='insertNPCS();'>Add NPC's to Target SG</button>
             </div>
         </div>
         <div id=tool_unsaved>
@@ -259,7 +263,6 @@
             <div id=z_search><nobr>Search: 
                 <select name=search_type id=search_type>
                     <option value='npc'>NPC</option>
-                    <option value='spawngroup'>Spawn Group</option>
                 </select>
                 <select name=search_field id=search_field>
                     <option value='name'>Name</option>
