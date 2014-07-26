@@ -158,9 +158,8 @@
             <div>
                 <div id=c_palette></div>
                 <hr>
-                <button type=button onClick='addSpawngroup();'>Add SG to Cursor</button>
-                <button type=button onClick='createSpawngroup();'>Create SG from NPC's at Cursor</button>
-                <button type=button onClick='insertNPCS();'>Add NPC's to Target SG</button>
+                <button type=button onClick='addSpawngroup();' style='width: 100%;'>Add SG to Cursor</button>
+                <button type=button onClick='createSpawngroup();' style='width: 100%;'>Create SG from NPC's at Cursor</button>
             </div>
         </div>
         <div id=tool_unsaved>
@@ -218,6 +217,17 @@
                         <input type=radio name=s_mapmat value='normal'>Planar Normal Material
                         <br>
                         <input type=radio name=s_mapmat value='trans'>Translucent Material
+                    </td>
+                </tr>
+                <tr>
+                    <td valign=top>Music</td>
+                    <td valign=top><input type=checkbox name=s_music></td>
+                </tr>
+                <tr>
+                    <td valign=top>Defaults</td>
+                    <td valign=top>
+                        <input type=text name=s_spawntime value=640> Spawn Time<br>
+                        <input type=text name=s_spawnvariance value=64> Spawn Variance<br>
                     </td>
                 </tr>
                 <tr>

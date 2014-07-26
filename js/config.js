@@ -1,4 +1,4 @@
-//This script needs to be loaded dynamically
+//TODO: This script needs to be loaded dynamically so that it can be managed from a login framework.
 
 //Global Config
 var _c = {};
@@ -10,13 +10,24 @@ _c.editormain = "http://emudev.us.to/peq/";
 
 //Show the toaster popup for cursor position
 _c.toaster = false;
+//Play zone music if available
+_c.music = false;
 
-_c.datatypes = {};
+//These are for additive operations
+_c.ops = {};
+//Create a new spawn at the cursor and associate it with the selected spawngroup
+_c.ops.addspawngroup = "ajax/addspawngroup.php";
+//Create a new spawn at the cursor and associate it with a new spawngroup built out of the selected NPC's
+_c.ops.newspawngroup = "ajax/newspawngroup.php";
+//Add an NPC to the currently selected spawngroup
+_c.ops.addnpc = "ajax/addnpc.php";
 
 //All links get passed the following:
     //zonesn
     //zoneid
     //zoneidnumber
+//Additional data is passed based on the type.
+_c.datatypes = {};
 
 _c.datatypes.zone = {};
     _c.datatypes.zone.save = "";
@@ -27,6 +38,12 @@ _c.datatypes.spawn = {};
     _c.datatypes.spawn.save = "ajax/spawnsave.php";
     _c.datatypes.spawn.src = "ajax/spawns.php";
     _c.datatypes.spawn.edit = _c.editormain + "index.php?editor=spawn&z=%%zonesn%%&zoneid=%%zoneid%%&sid=%%spawnid%%&action=4";
+
+_c.datatypes.spawn2 = {};
+    _c.datatypes.spawn2.edit = _c.editormain + "index.php?editor=spawn&z=%%zonesn%%&zoneid=%%zoneid%%&id=%%spawn2id%%&action=11";
+
+_c.datatypes.npcchance = {};
+    _c.datatypes.npcchance.edit = _c.editormain + "index.php?editor=spawn&z=%%zonesn%%&zoneid=%%zoneid%%&npcid=%%npcid%%&sid=%%spawnid%%&sgnpcid=%%npcid%%&action=1";
 
 _c.datatypes.npc = {};
     _c.datatypes.npc.save = "";
@@ -55,4 +72,3 @@ _c.datatypes.groundspawn = {};
 
 _c.datatypes.sound = {};
     _c.datatypes.sound.check = "ajax/sound.php?soundcheck";
-    _c.datatypes.sound.enabled = false; // Play sounds
