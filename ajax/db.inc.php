@@ -34,6 +34,8 @@ function pdoQuery($db, $q)
         $data['rows'][] = $row;
     }
 
+    $data['insert_id'] = $db->lastInsertId();
+
     return($data);
 }
 

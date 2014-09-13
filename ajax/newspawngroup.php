@@ -60,10 +60,33 @@ if($ret['error'])
 {
     die("ERROR|" . $ret['error']);
 }
+
+$sp2 = $ret['insert_id'];
+
+$q_spawn2 = "SELECT * FROM spawn2 WHERE id = '$sp2'";
+$q_spawngroup = "SELECT * FROM spawngroup WHERE id = '$sgid'";
+$q_spawnentry = "SELECT * FROM spawnentry WHERE spawngroupID = '$sgid'";
+
+$r_spawn2 = pdoQuery($db, $q_spawn2);
+if($r_spawn2['error']) { die("ERROR|". $r_spawn2['error']); }
+
+$r_spawngroup = pdoQuery($db, $q_spawngroup);
+if($r_spawngroup['error']) { die("ERROR|". $r_spawngroup['error']); }
+
+$r_spawnentry = pdoQuery($db, $q_spawnentry);
+if($r_spawnentry['error']) { die("ERROR|". $r_spawnentry['error']); }
+
 $_POST['newid'] = $ret['insert_id'];
 $_POST['newsgid'] = $sgid;
 $_POST['npclist'] = $nnpclist;
 $_POST['sgname'] = $sname;
+$_POST['newspawn2'] = $r_spawn2['rows'][0];
+$_POST['newsg'] = $r_spawngroup['rows'][0];
+$_POST['newse'] = array();
+foreach($r_spawnentry['rows'] as $r)
+{
+    $_POST['newse'][] = $r;
+}
 
 print "NEWSPAWNGROUP|0|" . json_encode($_POST);
 

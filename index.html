@@ -87,14 +87,13 @@
 			text-shadow: -1px 1px 80px #ffc, 1px -1px 80px #fff;
 		}
     </style>
-	<link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
     <link href="css/smoothness/jquery-ui-1.10.2.custom.css" rel="stylesheet">
-	<link rel="stylesheet" type="text/css" href="js/Gritter-master/css/jquery.gritter.css" />
+    <link href="css/w2ui-1.4.1.min.css" rel="stylesheet">
     <script src="js/jquery-1.9.1.js"></script>
     <script src="js/jquery-ui-1.10.2.custom.min.js"></script>
     <script src="js/ui_dialogfix.js"></script>
     <script src="js/jquery.cookie.js"></script>
-	<script src="js/Gritter-master/js/jquery.gritter.min.js"></script>
+    <script src="js/w2ui-1.4.1.min.js"></script>
     <script src="js/three.js"></script>
     <script src="js/Detector.js"></script>
     <script src="js/controls/OrbitControls_EQEmu_Map_Editor.js"></script>
@@ -137,19 +136,15 @@
             <div>
 				<div class="inline_image" style="display:inline">
 					<img src=images/cam_to_cursor.gif onClick='gotoObject(user.cursor);' title="Camera to Cursor" alt="Camera to Cursor">
-					<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+1</h4>
 				</div>
 				<div class="inline_image" style="display:inline">
 					<img src=images/cam_to_target.gif onClick='gotoObject(user.curobject);' title="Camera to Selection" alt="Camera to Selection">
-					<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+2</h4>
 				</div>
                 <div class="inline_image" style="display:inline">
 					<img src=images/target_to_cursor.gif onClick='selToCursor();' title="Selection to Cursor" alt="Selection to Cursor">
-					<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+3</h4>
 				</div>
                 <div class="inline_image" style="display:inline">
 					<img src=images/cursor_to_target.gif onClick='cursorToSel();' title="Cursor to Selection" alt="Cursor to Selection">
-					<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+4</h4>
 				</div>
             </div>
         </div>
@@ -218,10 +213,6 @@
                         <br>
                         <input type=radio name=s_mapmat value='trans'>Translucent Material
                     </td>
-                </tr>
-                <tr>
-                    <td valign=top>Music</td>
-                    <td valign=top><input type=checkbox name=s_music></td>
                 </tr>
                 <tr>
                     <td valign=top>Defaults</td>
@@ -328,20 +319,6 @@
                         </td>
                     </tr>
 					<tr>
-                        <td>
-                            <div class="inline_image" style="display:inline">
-								<a href="javascript:;" onClick="ToggleHEdit();">
-									<img src=images/button_blank.gif title="Edit Heading" alt="Edit Heading">
-									<i class="fa fa-compass button_awesome_font_icon" style="font-size:30px"></i>
-									<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="desc_inline_image">Heading</h4>
-									<h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+5</h4>
-								</a>
-							</div>
-							
-                        </td>
-                       
-                    </tr>
-					<tr>
 						<td>
 							<br>
 						</td>
@@ -351,39 +328,4 @@
         </div>
     </div>
 </body>
-
-<footer>
-	<script type="text/javascript">
-	
-		$(document).keydown(function (e){
-			// console.log('key code is: ' + e.which + ' ' + (e.ctrlKey ? 'Ctrl' : '') + ' ' + (e.shiftKey ? 'Shift' : '') + ' ' + (e.altKey ? 'Alt' : ''));
-			if(e.altKey && e.which == 49){ // Alt + 1 - Camera To Cursor
-				gotoObject(user.cursor); 	
-				DoGritterNotify('Hotkey Trigger', '<b>Alt + 1</b> Camera Loaded to Cursor');
-			} 
-			if(e.altKey && e.which == 50){ // Alt + 2 - Camera to Selection
-				gotoObject(user.curobject); 	
-				DoGritterNotify('Hotkey Trigger', '<b>Alt + 2</b> Camera to Selection');
-			} 
-			if(e.altKey && e.which == 51){ // Alt + 3 - Selection to Cursor
-				selToCursor(); 			
-				DoGritterNotify('Hotkey Trigger', '<b>Alt + 3</b> Selection to Cursor <br><b style="color:#FFFF00">(Position SAVED in DB)</b>');				
-			} 
-			if(e.altKey && e.which == 52){ // Alt + 4 - Cursor to Selection
-				cursorToSel();		
-				DoGritterNotify('Hotkey Trigger', '<b>Alt + 4</b> Cursor to Selection');
-			} 
-			if(e.altKey && e.which == 53){ // Alt + 5 - Move Z
-				ToggleHEdit();
-			} 
-			if(e.altKey && e.which == 90){ // Find Best Z for Selection
-				selToZ();
-				DoGritterNotify('Hotkey Trigger', '<b>Alt + Z</b> Find best Z for selection');
-			} 
-		});
-		document.getElementById('editor').focus();
-		
-	</script>
-</footer>
-
 </html>

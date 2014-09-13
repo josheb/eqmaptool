@@ -4,9 +4,11 @@
 Global resources need better management, especially zone data.
 We need to establish a group of dictionaries and provide references appropriately.  The best demonstration for this is the spawndata relationship with NPC's and spawn chances.
 The npclist cludge works, but spawn points, spawn groups (with entries), and npc's really need to be tracked separately.  Let them reference one another by ID or other applicable key.
+--Update: The only remnant from the old data structures is zonedata, which is fine.  All new zone informations should go in the Z global and match database tables.
 
 We need one smart camera with reliable input handling that knows when to move and when to type or interface with UI.
 Mouse events should translate to keyboard events in an understandable way.
+Hand.js is included and could provide a nice way of dragging for rotation in an intuitive way.
 
 Some elements lend themselves to being edited inline.  These distinctions need to be more clear.
 For instance, things like spawn chance need to be updated internally after they have been edited externally.
@@ -18,16 +20,53 @@ The map format needs to be updated to reflect current map changes.  Placeable ob
 An object model database would let us render items in the object and door tables also.
 As it stands the export tool relies on the old map format exported with all placeables included and we have no knowledge of textures or non-clipping geometry.
 
+Zone tables we need to load:
+doors : id, doorid (autoinc, per zone id)
+forage : id
+
+grid : id
+grid_entries : gridid
+
+ground_spawns : id
+
+npc_types : id
+
+object : id
+
+proximities : zoneid-exploreid
+
+spawn2 : id, spawngroupID -- Positions, spawn times
+spawngroup : id
+spawnentry : spawngroupID, npcID -- Entries for group
+
+zone_points : id
+
+Upcoming priority features in no particular order:
+Make inline spawngroup chance editor
+Add NPC quest editor using ACE library
+Set up grid edit mode
+Create map export tool using new zone-utilities
+Clean up object display widget
 */
+
 var requests = {};
 var loading = false;
 
+var Z = {};
+Z.doors = {};
+Z.forage = {};
+Z.grid = {};
+Z.grid_entries = {};
+Z.ground_spawns = {};
+Z.npc_types = {};
+Z.object = {};
+Z.proximities = {};
+Z.spawn2 = {};
+Z.spawnentry = {};
+Z.spawngroup = {};
+Z.zone_points = {};
+
 var zonedata;
-var spawndata;
-var griddata;
-var doordata;
-var objdata;
-var gsdata;
 
 var currentzone = "";
 
@@ -81,8 +120,6 @@ var tracker = {};
 tracker.unsaved = [];
 tracker.npcs = [];
 tracker.spawngroups = [];
-
-var npclist = {};
 
 $(document).ready( function() {
 
@@ -156,6 +193,21 @@ function getZones()
 {
     if(requests.zonelist) { return; }
     $.get(_c.datatypes.zone.src, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('zonelist', stat, err); });
+}
+
+function getZoneData()
+{
+    var qs = {};
+    qs.zn = currentzone;
+    qs.znum = zonedata[currentzone].zoneidnumber;
+    qs.zid = zonedata[currentzone].id;
+    qs.ver = settings.version;
+
+    $.get(_c.datatypes.spawn.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('spawns', stat, err); });
+    $.get(_c.datatypes.grid.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('grids', stat, err); });
+    //$.get(_c.datatypes.doors.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('doors', stat, err); });
+    //$.get(_c.datatypes.object.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('objects', stat, err); });
+    //$.get(_c.datatypes.groundspawn.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('groundspawns', stat, err); });
 }
 
 function getSpawns()
@@ -373,15 +425,7 @@ function init()
     log("Initialized.");
 
 	/* Initialize Cameras */
-	
-	/* Orbit for all of the mouse and wheeling functionalities */
-
-	OrbitControls = new THREE.OrbitControls(camera);
-	OrbitControls.zoomSpeed = 2;
-	OrbitControls.rotateSpeed = .5;
-
-	/* Important that FlyControls initialize afterwards */
-	
+		
     controls = new THREE.FlyControls( camera );
     controls.movementSpeed = settings.movespeed;
     controls.rollSpeed = 1;
@@ -434,12 +478,14 @@ function procData(d)
 
         case "SPAWNSAVE":
             var spret = JSON.parse(data);
-            spawndata[count].x = spret.x;
-            spawndata[count].y = spret.y;
-            spawndata[count].z = spret.z;
-            spawndata[count].heading = spret.heading;
-            spawndata[count].name = spret.name;
+            var sgid = Z.spawn2[count].spawngroupID;
+            Z.spawn2[count].x = spret.x;
+            Z.spawn2[count].y = spret.y;
+            Z.spawn2[count].z = spret.z;
+            Z.spawn2[count].heading = spret.heading;
+            Z.spawngroup[sgid].name = spret.name;
             setSaved(res.spawns[count]);
+            renderSpawnList();
             log("Spawn Saved: " + count);
             break;
 
@@ -450,44 +496,20 @@ function procData(d)
 
         case "ADDSPAWNGROUP":
             var spret = JSON.parse(data);
-            spawndata[spret.newid] = {};
-            spawndata[spret.newid].spawngroupID = spret.sgid;
-            spawndata[spret.newid].x = spret.x;
-            spawndata[spret.newid].y = spret.y;
-            spawndata[spret.newid].z = spret.z;
-            spawndata[spret.newid].heading = 0;
-            spawndata[spret.newid].pathgrid = 0;
-            spawndata[spret.newid].id = spret.newid;
-            spawndata[spret.newid].name = spawndata[spret.sid].name;
-            spawndata[spret.newid].entries = [];
-            for(var x in spawndata[spret.sid].entries)
-            {
-                spawndata[spret.newid].entries.push(spawndata[spret.sid].entries[x]);
-            }
-            drawSpawn(spret.newid);
+            Z.spawn2[spret.newspawn2.id] = spret.newspawn2;
+            drawSpawn(spret.newspawn2.id);
             renderSpawnList();
-            log("Added new spawn: " + spret.newid + " with SG: " + spret.sgid);
+            log("Added new spawn: " + spret.newspawn2.id + " with SG: " + spret.sgid);
             break;
 
         case "NEWSPAWNGROUP":
             var spret = JSON.parse(data);
-            spawndata[spret.newid] = {};
-            spawndata[spret.newid].spawngroupID = spret.newsgid;
-            spawndata[spret.newid].x = spret.x;
-            spawndata[spret.newid].y = spret.y;
-            spawndata[spret.newid].z = spret.z;
-            spawndata[spret.newid].heading = 0;
-            spawndata[spret.newid].pathgrid = 0;
-            spawndata[spret.newid].id = spret.newid;
-            spawndata[spret.newid].name = spret.sgname;
-            spawndata[spret.newid].entries = [];
-            for(var x in spret.npclist)
-            {
-                spawndata[spret.newid].entries.push(spret.npclist[x]);
-            }
-            drawSpawn(spret.newid);
+            Z.spawn2[spret.newspawn2.id] = spret.newspawn2;
+            Z.spawngroup[spret.newspawn2.spawngroupID] = spret.newsg;
+            Z.spawnentry[spret.newspawn2.spawngroupID] = spret.newse;
+            drawSpawn(spret.newspawn2.id);
             renderSpawnList();
-            log("Created new spawn: " + spret.newid + " with new SG: " + spret.newsgid);
+            log("Created new spawn: " + spret.newspawn2.id + " with new SG: " + spret.newsgid);
             break;
 
         default:
@@ -590,9 +612,9 @@ function updateGrids(d, gridcount)
 
 function updateSpawns(d, spawncount)
 {
-    spawndata = JSON.parse(d);
+    var spawndata = JSON.parse(d);
     //log("Spawns (V"+ settings.version + "): " + spawncount);
-    log("Spawns (V"+ settings.version + "): " + Object.keys(spawndata).length);
+    log("Spawns (V"+ settings.version + "): " + Object.keys(spawndata.spawn2).length);
 
     for(var x in res.spawns)
     {
@@ -602,19 +624,13 @@ function updateSpawns(d, spawncount)
 
     res.spawns = {};
 
-    for(var x in spawndata)
-    {
-        for(var y in spawndata[x].entries)
-        {
-            var npc = spawndata[x].entries[y];
+    Z.spawn2 = spawndata.spawn2;
+    Z.spawngroup = spawndata.spawngroup;
+    Z.spawnentry = spawndata.spawnentry;
+    Z.npc_types = spawndata.npc_types;
 
-            npclist[npc.npcid] = spawndata[x].entries[y];
-            //The json doesn't come with id because it collides with spawn.  We do this for consistency later.
-            npclist[npc.npcid].id = npc.npcid;
-            npclist[npc.npcid].npcid = npc.npcid;
-            //We've cached the NPC in the master list, switch this to an ID reference for global access.
-            spawndata[x].entries[y] = { 'npcid': npc.npcid, 'chance': npc.chance }
-        }
+    for(var x in Z.spawn2)
+    {
         drawSpawn(x);
     }
 
@@ -626,10 +642,10 @@ function drawSpawn(spid)
     var x = spid;
 
     res.spawns[x] = new THREE.Mesh( res.cube, res.spawnmat );
-    res.spawns[x].position.set( spawndata[x].x, spawndata[x].y, spawndata[x].z * -1);
+    res.spawns[x].position.set( Z.spawn2[x].x, Z.spawn2[x].y, Z.spawn2[x].z * -1);
 
     //Max heading value is 255.
-    res.spawns[x].rotation.z = toRad( Math.abs(360 - fromEQ(parseFloat(spawndata[x].heading))) );
+    res.spawns[x].rotation.z = toRad( Math.abs(360 - fromEQ(parseFloat(Z.spawn2[x].heading))) );
 
     res.spawns[x].userData.hmesh = new THREE.Line(res.hline, res.linemat);
     res.spawns[x].userData.hmesh.position.set( 0, 0, 0);
@@ -638,7 +654,7 @@ function drawSpawn(spid)
 
     res.spawns[x].userData.objtype = "spawn";
     res.spawns[x].userData.uid = x;
-    res.spawns[x].userData.entry = spawndata[x].spawngroupID;
+    res.spawns[x].userData.entry = Z.spawn2[x].spawngroupID;
     res.spawns[x].userData.dirty = false;
     res.spawns[x].add(res.spawns[x].userData.hmesh);
     scene.add(res.spawns[x]);
@@ -648,22 +664,24 @@ function renderSpawnList()
 {
    var spawnstr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
 
-   for(var x in spawndata)
+   for(var x in Z.spawn2)
    {
-        spawnstr += "<tr><td class=tdul>" + spawndata[x].name + "</td><td class=tdul>" + parseFloat(spawndata[x].x).toFixed(2) + ", " + parseFloat(spawndata[x].y).toFixed(2) + ", " + parseFloat(spawndata[x].z).toFixed(2) + "</td>";
+        sgid = Z.spawn2[x].spawngroupID;
+
+        spawnstr += "<tr><td class=tdul>" + Z.spawngroup[sgid].name + "</td><td class=tdul>" + parseFloat(Z.spawn2[x].x).toFixed(2) + ", " + parseFloat(Z.spawn2[x].y).toFixed(2) + ", " + parseFloat(Z.spawn2[x].z).toFixed(2) + "</td>";
         spawnstr += "<td class=tdul><nobr><img src=images/goto.gif title=\"Goto Spawn\" onClick='gotoObject(res.spawns[" + x + "]); setTarget(\"spawn\", " + x + ", -1, res.spawns[" + x + "]);'> ";
-        spawnstr += "<img src=images/edit.gif title=\"Edit Spawn Group\" onClick='editItem(\"spawn\", { spawnid: " + spawndata[x].spawngroupID + "});'> ";
+        spawnstr += "<img src=images/edit.gif title=\"Edit Spawn Group\" onClick='editItem(\"spawn\", { spawnid: " + sgid + "});'> ";
         spawnstr += "<img src=images/edit.gif title=\"Edit Spawn2\" onClick='editItem(\"spawn2\", { spawn2id: " + x + "});'> ";
         spawnstr += " <img src=images/add.gif onClick='addToPalette(\"spawngroup\", "+x+", -1, -1);' title='Add SpawnGroup to Palette'>";
         spawnstr += " <img src=images/delete.gif title=\"DELETE SPAWN\"></nobr></td></tr>";
-        for(var y in spawndata[x].entries)
+        for(var y in Z.spawnentry[sgid])
         {
-            var npc = npclist[spawndata[x].entries[y].npcid];
+            var npc = Z.npc_types[Z.spawnentry[sgid][y].npcID];
 
             spawnstr += "<tr><td> &nbsp; &nbsp; " + npc.name + "</td><td>L" + npc.level + "</td><td align=right>";
-            spawnstr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + spawndata[x].spawngroupID + ", npcid: " + npc.npcid + "});'>" + spawndata[x].entries[y].chance + "% </a>&nbsp; ";
-            spawnstr += "<img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.npcid + " });'>";
-            spawnstr += "<img src=images/add.gif onClick='addToPalette(\"npc\", "+ npc.npcid + ", -1, -1);' title='Add NPC to Palette'></td></tr>";
+            spawnstr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + sgid + ", npcid: " + npc.id + "});'>" + Z.spawnentry[sgid][y].chance + "% </a>&nbsp; ";
+            spawnstr += "<img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.id + " });'>";
+            spawnstr += "<img src=images/add.gif onClick='addToPalette(\"npc\", "+ npc.id + ", -1, -1);' title='Add NPC to Palette'></td></tr>";
         }
     }
 
@@ -775,9 +793,7 @@ function loadZone(zn, load_method)
     $("#zlbutton").empty();
     $("#zlbutton").append("Zone List (Loading: " + zn + ")");
 	
-	
-	
-	// Akka: Loader
+    // Akka: Loader
 	$( "#big_loader" ).fadeIn( "slow");
 	$( "#big_loader" ).html('<i class="fa-li fa fa-refresh fa-spin glow" style="font-size:2000%;position:absolute; z-index:999999999px !important;top:20%;left:33%;"></i>');
 	
@@ -790,12 +806,6 @@ function loadZone(zn, load_method)
 	/* Update Page Title */
 	$(document).attr('title', '[EQEmu Map Tool] (' + zn + ')');
 	
-	/* Load Music */
-    if(_c.music)
-    {
-	    $.ajax({ url: _c.datatypes.sound.check + "&zone=" + zn, context: document.body }).done(function(html) { $("#sound_container").html(html); });
-	}
-
 	/* Akk: Only push new browser variables if we're loading from the zone selection menu... */
 	if(load_method != 1)
     {
@@ -838,7 +848,6 @@ function loadZone(zn, load_method)
     res.mover.traverse( function(child) { child.visible = false; } );
     clearTarget();
 
-    npclist = {};
     tracker.unsaved = [];
     tracker.npcs = [];
     tracker.spawngroups = [];
@@ -846,9 +855,10 @@ function loadZone(zn, load_method)
     updateUnsaved();
     updatePalette();
 
-    getSpawns();
-	
-    getGrids();
+    getZoneData();
+
+    //getSpawns();
+    //getGrids();
 }
 
 function loadFinished(result)
@@ -923,7 +933,8 @@ function updateSettings()
 
     if(ov != settings.version)
     {
-        getSpawns();
+        //getSpawns();
+        getZoneData();
     }
 
     controls.movementSpeed = settings.movespeed;
@@ -961,10 +972,7 @@ function getZ(obj)
 /* updateCursor - Responsible for updating coordinates of selection on 'Click' event, dispatched by master jquery event */
 
 function updateCursor()
-{
-	/* This variable is incremented in onMouseMove of OrbitControls_EQEmu_Map_Editor.js, if there is movement of mouse while mouse button is clicked, we will not update cursor */
-	if(mouse_rotate_tracker > 10){ console.log('ROTATED (PAN Detection) - Do NOT Update Cursor'); mouse_rotate_tracker = 0; return; }
-	
+{	
     if(opmode.substr(0, 7) == "MOVEOBJ")
     {
         opmode = "NAVIGATE";
@@ -999,30 +1007,15 @@ function updateCursor()
         switch(hits[hx].object.userData.objtype)
         {
             case "map":
-				// console.log('hi 1');
                 user.cursor.position = hits[hx].point;
-                hitmap = true;
-				
-				/* Akk: Update Orbit Target (Center Focus) Control x/y/z to the cursor position on update */
-				OrbitControls.target = user.cursor.position;
-				console.log('Cursor Position: ' + JSON.stringify(user.cursor.position));
-				mouse_rotate_tracker = 0; /* Reset rotate tracker */
-				DoGritterNotify('Updating Cursor Position', "<b>X:</b> " + Math.round(JSON.stringify(user.cursor.position.x)) +  
-					" <b>Y:</b> " + Math.round(JSON.stringify(user.cursor.position.y)) +  
-					" <b>Z:</b> " + Math.round(JSON.stringify(user.cursor.position.z)) + "<br><hr><small>(Use Map Tools on the left to manipulate)</small>"
-				);
-				// console.log('OrbitContols Center Position: ' + JSON.stringify(OrbitControls.target));
-				/* End: Update Orbit Target */
-				
+                hitmap = true;				
                 break;
 
             case "spawn":
-				// console.log('hi 2');
                 setTarget("spawn", hits[hx].object.userData.uid, -1, hits[hx].object);
                 break;
 
             case "grid":
-				// console.log('hi 3');
                 setTarget("grid", hits[hx].object.userData.uid, hits[hx].object.userData.entry, hits[hx].object);
                 break;
 
@@ -1044,7 +1037,6 @@ function updateCursor()
                 break;
 
             default:
-				// console.log('hi 4');
                 break;
         }
         user.lastdist = user.curdist;
@@ -1062,7 +1054,7 @@ function editSel()
         switch(user.curtype)
         {
             case "spawn":
-                dt.spawnid = spawndata[user.curobject.userData.uid].id;
+                dt.spawnid = Z.spawngroup[user.curobject.userData.uid].id;
                 break;
 
             default:
@@ -1111,17 +1103,18 @@ function setTarget(tp, id1, id2, obj)
 
     //TODO: Set up a template system by type
     var infostr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
-    var spawnlist = spawndata[id1];
+
+    var sgid = Z.spawn2[id1].spawngroupID;
 
 //    log("Grid: " + spawnlist.pathgrid);
 
-    for(var x in spawnlist.entries)
+    for(var x in Z.spawnentry[sgid])
     {
-        var npc = npclist[spawnlist.entries[x].npcid];
+        var npc = Z.npc_types[Z.spawnentry[sgid][x].npcID];
         infostr += "<tr><td>" + npc.name + "</td><td>L" + npc.level + "</td><td align=right>";
-        infostr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + spawndata[id1].spawngroupID + ", npcid: " + npc.npcid + "});'>"+ spawnlist.entries[x].chance + "% </a>&nbsp; ";
-        infostr += "<img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.npcid + " });' title='Edit NPC'>";
-        infostr += "<img src=images/add.gif onClick='addToPalette(\"npc\", " + npc.npcid + ", " + id1 + ", " + x + ");' title='Add NPC to Palette'></td></tr>";
+        infostr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + sgid + ", npcid: " + npc.id + "});'>"+ Z.spawnentry[sgid][x].chance + "% </a>&nbsp; ";
+        infostr += "<img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.id + " });' title='Edit NPC'>";
+        infostr += "<img src=images/add.gif onClick='addToPalette(\"npc\", " + npc.id + ", " + id1 + ", " + x + ");' title='Add NPC to Palette'></td></tr>";
     }
     infostr += "</table>";
     $("#sel_info").empty();
@@ -1129,11 +1122,11 @@ function setTarget(tp, id1, id2, obj)
 
     $("#sel_heading").empty();
     var spawnstr = "<b>" + tp + ": <input type=text name='selname' id='selname' value=''></b>";
-    spawnstr += "<img src=images/edit.gif title=\"Edit Spawn Group\" onClick='editItem(\"spawn\", { spawnid: " + spawndata[id1].spawngroupID + "});'>";
+    spawnstr += "<img src=images/edit.gif title=\"Edit Spawn Group\" onClick='editItem(\"spawn\", { spawnid: " + sgid + "});'>";
     spawnstr += "<img src=images/edit.gif title=\"Edit Spawn2\" onClick='editItem(\"spawn2\", { spawn2id: " + id1 + "});'>";
     spawnstr += "<img src=images/add.gif onClick='addToPalette(\"spawngroup\", " + id1 + ", -1, -1);' title='Add SpawnGroup to Palette'>";
     $("#sel_heading").append( spawnstr );
-    $("#selname").val(spawnlist.name);
+    $("#selname").val(Z.spawngroup[sgid].name);
 
     updateSelPos();
 }
@@ -1247,7 +1240,7 @@ function resetSelPos()
         switch(user.curtype)
         {
             case "spawn":
-                active = spawndata[user.curobject.userData.uid];
+                active = Z.spawn2[user.curobject.userData.uid];
                 break;
 
             default:
@@ -1264,30 +1257,17 @@ function resetSelPos()
     }    
 }
 
-function DoGritterNotify(g_title, g_text)
-{
-    $.gritter.add({
-        // (string | mandatory) the heading of the notification
-        title: '<b style="color:yellow">' + g_title + '</b>',
-        // (string | mandatory) the text inside the notification
-        text: g_text,
-        time: 1000
-    });
-}
-
 function ToggleHEdit()
 {
     if(opmode == "MOVEOBJh")
     {
         opmode = "";
-        DoGritterNotify('Heading Saved (Unlocked)', 'You are free to edit another object');
         saveSelPos();
     }
     else
     {
         if(!user.curobject || user.curtype == "map" || !user.curtype) { return; }
         opmode = "MOVEOBJh";
-        DoGritterNotify('Heading Edit (Locked)', '<b>Alt + 5</b> Move mouse left and right to adjust heading, press Alt + 5 to escape locked mode');
         moverpos.x = user.curobject.position.x;
         moverpos.y = user.curobject.position.y;
         moverpos.z = user.curobject.position.z;
@@ -1303,7 +1283,6 @@ function addToPalette(type, data)
         case "npc":
             tracker.npcs.push(data);
             updatePalette();
-            //alert(npclist[data].name);
             break;
 
         case "spawngroup":
@@ -1381,7 +1360,7 @@ function updatePalette()
 
     for(var x = 0; x < tracker.npcs.length; x++)
     {
-        var npc = npclist[tracker.npcs[x]];
+        var npc = Z.npc_types[tracker.npcs[x]];
         var ckstr = "";
         if($("#pc_npc_"+x).is(':checked')) { ckstr = " checked"; }
         pstr += "<tr><td>" + npc.name + "</td><td>" + npc.level + "</td>";
@@ -1396,12 +1375,13 @@ function updatePalette()
     var sgsel = $('input[name=sgselect]:checked').val();
     for(var x = 0; x < tracker.spawngroups.length; x++)
     {
-        var sgid = tracker.spawngroups[x];
-        var sg = spawndata[sgid];
+        var sp2 = tracker.spawngroups[x];
+        var sgid = Z.spawn2[sp2].spawngroupID;
+        var sg = Z.spawngroup[sgid];
         var ckstr = "";
         if(x == sgsel) { ckstr = " checked"; }
         pstr += "<tr><td>" + sg.name + "</td>";
-        pstr += "<td><img src=images/goto.gif title=\"Goto Spawn\" onClick='gotoObject(res.spawns[" + sgid + "]); setTarget(\"spawn\", " + sgid + ", -1, res.spawns[" + sgid + "]);'></td>";
+        pstr += "<td><img src=images/goto.gif title=\"Goto Spawn\" onClick='gotoObject(res.spawns[" + sp2 + "]); setTarget(\"spawn\", " + sp2 + ", -1, res.spawns[" + sp2 + "]);'></td>";
         //pstr += "<td align=right><input type=checkbox class='pcheck pc_spawngroup' id='pc_spawngroup_"+x+"' onClick='pSelect(\"spawngroup\", "+x+", this);'> ";
         pstr += "<td align=right><input type=radio class='pradio' name=sgselect value='"+x+"' onClick='pSelect(\"spawngroup\", "+x+", this);'" + ckstr + "> ";
         pstr += "<img src=images/delete.gif onClick='delFromPalette(\"spawngroup\", "+x+");' title='Remove From Palette' alt='Remove From Palette'></td>";
@@ -1474,8 +1454,8 @@ function showSearch(d, type)
 
         //We might eventually want to store this in a current search object and only use the persistent cache for results that get used.
         //Even if this is already there, this version should be the most current.
-        npclist[searchres[x].id] = searchres[x];
-        npclist[searchres[x].id].npcid = searchres[x].id;
+        Z.npc_types[searchres[x].id] = searchres[x];
+        Z.npc_types[searchres[x].id].npcid = searchres[x].id;
     }
     sstr += "</table>";
 
@@ -1496,7 +1476,7 @@ function addSpawngroup()
     pdata.x = user.cursor.position.x;
     pdata.y = user.cursor.position.y;
     pdata.z = (user.cursor.position.z + getZOffset(user.cursor, "spawn")) * -1;
-    pdata.sgid = spawndata[sid].spawngroupID;
+    pdata.sgid = Z.spawn2[sid].spawngroupID;
     pdata.sid = sid;
     pdata.zn = currentzone;
     pdata.zid = zonedata[currentzone].zoneidnumber;
@@ -1515,7 +1495,7 @@ function createSpawngroup()
     var npclist = [];
     for(var x = 0; x < tracker.npcs.length; x++)
     {
-        var npc = npclist[tracker.npcs[x]];
+        var npc = Z.npc_types[tracker.npcs[x]];
 
         if($("#pc_npc_"+x).is(':checked'))
         {

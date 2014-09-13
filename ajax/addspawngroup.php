@@ -24,7 +24,17 @@ if($ret['error'])
     die("ERROR|" . $ret['error']);
 }
 
-$_POST['newid'] = $ret['insert_id'];
+$newsid = $ret['insert_id'];
+//$_POST['newid'] = $ret['insert_id'];
+//Return all of the necessary data to keep JS data sources complete.
+$q_spawn2 = "SELECT * FROM spawn2 WHERE id = '$newsid'";
+$ret = pdoQuery($db, $q_spawn2);
+if($ret['error'])
+{
+    die("ERROR|" . $ret['error']);
+}
+
+$_POST['newspawn2'] = $ret['rows'][0];
 
 print "ADDSPAWNGROUP|0|" . json_encode($_POST);
 
