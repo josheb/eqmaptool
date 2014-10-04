@@ -4,7 +4,7 @@
 Global resources need better management, especially zone data.
 We need to establish a group of dictionaries and provide references appropriately.  The best demonstration for this is the spawndata relationship with NPC's and spawn chances.
 The npclist cludge works, but spawn points, spawn groups (with entries), and npc's really need to be tracked separately.  Let them reference one another by ID or other applicable key.
---Update: The only remnant from the old data structures is zonedata, which is fine.  All new zone informations should go in the Z global and match database tables.
+--Update: The only remnant from the old data structures is zonedata, which is fine.  All new zone information should go in the Z global and match database tables.
 
 We need one smart camera with reliable input handling that knows when to move and when to type or interface with UI.
 Mouse events should translate to keyboard events in an understandable way.
@@ -42,11 +42,11 @@ spawnentry : spawngroupID, npcID -- Entries for group
 zone_points : id
 
 Upcoming priority features in no particular order:
-Make inline spawngroup chance editor
-Add NPC quest editor using ACE library
-Set up grid edit mode
-Create map export tool using new zone-utilities
-Clean up object display widget
+    Create map export tool using new zone-utilities
+    Make inline spawngroup chance editor
+    Add NPC quest editor using ACE library - Written but not integrated!
+    Set up grid edit mode
+    Clean up object display widget
 */
 
 var requests = {};
@@ -210,6 +210,7 @@ function getZoneData()
     //$.get(_c.datatypes.groundspawn.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('groundspawns', stat, err); });
 }
 
+// Older data loading functions
 function getSpawns()
 {
     if(requests.spawns) { return; }
@@ -260,6 +261,7 @@ function getGroundSpawns()
     qs.ver = settings.version;
     $.get(_c.datatypes.groundspawn.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('groundspawns', stat, err); });
 }
+// END
 
 function reqFail(rtype, stat, err)
 {
@@ -291,6 +293,7 @@ function init()
 
     $("#sidenav").dialog({ width: 300, height: 400, position: { my: "left top", at: "left bottom", of: $("#toolbar") } });
     $("#editor").dialog({ width: 800, height: 600, position: { my: "left top", at: "left bottom", of: $("#toolbar") }, autoOpen: false });
+    $("#questeditor").dialog({ width: 800, height: 600, position: { my: "left top", at: "left bottom", of: $("#toolbar") }, autoOpen: false });
     $("#zonemenu").dialog({ width: 500, height: 500, position: { my: "center", at: "center", of: window }, autoOpen: false});
     $("#settings").dialog({ width: 400, height: 300, position: { my: "center", at: "center", of: window }, autoOpen: false });
     $("#currentzone").dialog({ width: 600, height: 700, position: { my: "top", at: "top", of: window }, autoOpen: false });
@@ -309,6 +312,7 @@ function init()
     $("#tool_misc").accordion({ icons: null, collapsible: true, heightStyle: "content" });
 
     $('#editframe').attr('src', _c.editormain);
+    $('#questeditframe').attr('src', _c.questeditormain);
 
     // https://groups.google.com/forum/#!topic/jquery-ui-dev/sP9gWig4w_o
     var statustitle = statusdialog.parents('.ui-dialog').find('.ui-dialog-titlebar');
@@ -332,10 +336,11 @@ function init()
 */
 
     $('<table width=100% border=0 cellspacing=0 cellpadding=0><tr><td valign=top><b>Status</b></td><td valign=top align=right><button id=statusclear>Clear</button></td></tr></table>').appendTo(statustitle);
-    $('<table width=100% border=0 cellspacing=0 cellpadding=0><tr><td valign=top><b>Target</b></td><td valign=top align=right><button id=targetclear>Clear</button></td></tr></table>').appendTo(targettitle);
+    $('<table width=100% border=0 cellspacing=0 cellpadding=0><tr><td valign=top><b>Target</b></td><td valign=top align=right><button id=targetclear>Clear</button>|<button id=targetrefresh>Refresh</button></td></tr></table>').appendTo(targettitle);
 
     $("#statusclear").click( function() { $("#statustext").empty(); } );
     $("#targetclear").click( function() { clearTarget(); } );
+    $("#targetrefresh").click( function() { refreshTarget(); } );
 
     loader = new THREE.SceneLoader();
 
@@ -556,7 +561,7 @@ function updateZonelist(d)
 
 function updateGrids(d, gridcount)
 {
-    griddata = JSON.parse(d);
+    var griddata = JSON.parse(d);
     log("Grids: " + gridcount);
 
     for(var x in res.grids)
@@ -570,38 +575,61 @@ function updateGrids(d, gridcount)
 
     res.grids = {};
 
-    var gridstr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
-    for(var x in griddata)
+    Z.grids = griddata.grids;
+    Z.grid_entries = griddata.grid_entries;
+
+    for(var x in Z.grids)
     {
-        gridstr += "<tr><td class=tdul colspan=3>Grid " + x + "</td></tr>";
-
-        for(var y in griddata[x].entries)
+        for(var y in Z.grid_entries[x])
         {
-            var grid = griddata[x].entries[y];
-            gridstr += "<tr><td> &nbsp; &nbsp; " + grid.number + "</td><td>" + gridtypes[griddata[x].type] + "</td><td>" + pausetypes[griddata[x].type2] + " (" + grid.pause + ")</td></tr>";
+            drawGrid(x, y);
+        }
+    }
+    renderGridList();
+}
 
-            if(!res.grids[x]) { res.grids[x] = {}; }
+function drawGrid(gid, geid)
+{
+    var x = gid;
+    var y = geid;
 
-            res.grids[x][y] = new THREE.Mesh( res.cube, res.gridmat );
-            res.grids[x][y].scale.set(0.5, 0.5, 0.5);
-            res.grids[x][y].position.set( grid.x, grid.y, grid.z * -1);
+    var grid = Z.grid_entries[x][y];
 
-            //Max heading value is 255.
-            res.grids[x][y].rotation.z = toRad( Math.abs(360 - fromEQ(parseFloat(grid.heading))) );
+    if(!res.grids[x]) { res.grids[x] = {}; }
 
-            res.grids[x][y].userData.hmesh = new THREE.Line(res.hline, res.linemat);
-            res.grids[x][y].userData.hmesh.position.set( 0, 0, 0);
-            res.grids[x][y].userData.hmesh.rotation.set( 0, 0, 0);
-            res.grids[x][y].userData.hmesh.userData.objtype = "heading";
+    res.grids[x][y] = new THREE.Mesh( res.cube, res.gridmat );
+    res.grids[x][y].scale.set(0.5, 0.5, 0.5);
+    res.grids[x][y].position.set( grid.x, grid.y, grid.z * -1);
 
-            res.grids[x][y].userData.objtype = "grid";
-            res.grids[x][y].userData.uid = x;
-            res.grids[x][y].userData.entry = y;
-            res.grids[x][y].userData.dirty = false;
-            res.grids[x][y].add(res.grids[x][y].userData.hmesh);
-            res.grids[x][y].visible = false;
-            res.grids[x][y].userData.hmesh.visible = false;
-            scene.add(res.grids[x][y]);
+    //Max heading value is 255.
+    res.grids[x][y].rotation.z = toRad( Math.abs(360 - fromEQ(parseFloat(grid.heading))) );
+
+    res.grids[x][y].userData.hmesh = new THREE.Line(res.hline, res.linemat);
+    res.grids[x][y].userData.hmesh.position.set( 0, 0, 0);
+    res.grids[x][y].userData.hmesh.rotation.set( 0, 0, 0);
+    res.grids[x][y].userData.hmesh.userData.objtype = "heading";
+
+    res.grids[x][y].userData.objtype = "grid";
+    res.grids[x][y].userData.uid = x;
+    res.grids[x][y].userData.entry = y;
+    res.grids[x][y].userData.dirty = false;
+    res.grids[x][y].add(res.grids[x][y].userData.hmesh);
+    res.grids[x][y].visible = false;
+    res.grids[x][y].userData.hmesh.visible = false;
+    scene.add(res.grids[x][y]);
+}
+
+function renderGridList()
+{
+    var gridstr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
+    for(var x in Z.grids) // id, zoneid, type, type2
+    {
+        gridstr += "<tr><td class=tdul>Grid " + x + "</td><td class=tdul>" + gridtypes[Z.grids[x].type] + "</td><td class=tdul>" + pausetypes[Z.grids[x].type2] + "</td></tr>";
+
+        for(var y in Z.grid_entries[x]) // gridid, zoneid, number, x, y, z, heading, pause
+        {
+            var grid = Z.grid_entries[x][y];
+            gridstr += "<tr><td> &nbsp; &nbsp; " + grid.number + "</td><td>" + grid.x + "," + grid.y + "," + grid.z + "</td><td>Pause: " + grid.pause + "</td></tr>";
         }
     }
 
@@ -1111,7 +1139,7 @@ function setTarget(tp, id1, id2, obj)
     for(var x in Z.spawnentry[sgid])
     {
         var npc = Z.npc_types[Z.spawnentry[sgid][x].npcID];
-        infostr += "<tr><td>" + npc.name + "</td><td>L" + npc.level + "</td><td align=right>";
+        infostr += "<tr><td><a href='javascript:void(0);' onClick='editQuest(" + npc.id + ");'>" + npc.name + "</a></td><td>L" + npc.level + "</td><td align=right>";
         infostr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + sgid + ", npcid: " + npc.id + "});'>"+ Z.spawnentry[sgid][x].chance + "% </a>&nbsp; ";
         infostr += "<img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.id + " });' title='Edit NPC'>";
         infostr += "<img src=images/add.gif onClick='addToPalette(\"npc\", " + npc.id + ", " + id1 + ", " + x + ");' title='Add NPC to Palette'></td></tr>";
@@ -1143,20 +1171,20 @@ function clearTarget()
 
     $("#sel_info").empty();
     $("#sel_heading").empty();
-    $("#selx").val( "0" );
-    $("#sely").val( "0" );
-    $("#selz").val( "0" );
-    $("#selh").val( "0" );
+    $("#selx").html( "0" );
+    $("#sely").html( "0" );
+    $("#selz").html( "0" );
+    $("#selh").html( "0" );
 }
 
 function updateSelPos()
 {
     if(user.curobject)
     {
-        $("#selx").val( parseFloat(user.curobject.position.x).toFixed(2) );
-        $("#sely").val( parseFloat(user.curobject.position.y).toFixed(2) );
-        $("#selz").val( parseFloat(user.curobject.position.z).toFixed(2) );
-        $("#selh").val( toEQ( 360 - toDeg(parseFloat(user.curobject.rotation.z)) ).toFixed(2) );
+        $("#selx").html( parseFloat(user.curobject.position.x).toFixed(2) );
+        $("#sely").html( parseFloat(user.curobject.position.y).toFixed(2) );
+        $("#selz").html( parseFloat(user.curobject.position.z).toFixed(2) );
+        $("#selh").html( toEQ( 360 - toDeg(parseFloat(user.curobject.rotation.z)) ).toFixed(2) );
     }
 }
 
@@ -1469,7 +1497,7 @@ function addSpawngroup()
     if(sgsel === undefined) { return; }
 
     //This is a spawn ID, NOT a spawngroup ID.
-    //Once the zone data is reworked spawngroups may get their own container, but for now they are combined with spawn2 entries.
+    //Once the zone data is reworked spawngroups may get their own container, but for now they are combined with spawn2 entries -- Fixed!.
     var sid = tracker.spawngroups[sgsel];
 
     var pdata = {};
@@ -1519,6 +1547,14 @@ function createSpawngroup()
     pdata.npclist = JSON.stringify(npclist);
 
     $.post(_c.ops.newspawngroup, pdata, function(data) { procData(data); });
+}
+
+function editQuest(npcid)
+{
+    var npc = Z.npc_types[npcid];
+
+    document.getElementById('questeditframe').contentWindow[_c.questeditfunction](currentzone, npc.name);
+    if(!$('#questeditor').dialog("isOpen")) { $('#questeditor').dialog("open"); }    
 }
 
 //TODO: Implement this.  The dodgy part is figuring out what chance to use.

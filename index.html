@@ -47,6 +47,13 @@
             width: 100%;
             height: 100%;
         }
+        #questeditframe {
+            border: 0px;
+            margin: 0px;
+            padding: 0px;
+            width: 100%;
+            height: 100%;
+        }
 		.inline_image{
 			position: relative;
 			width: 100%;
@@ -82,10 +89,15 @@
 			color: black;
 			text-align:center;
 		}
-		.glow{
+		.glow
+        {
 			color: #fff;
 			text-shadow: -1px 1px 80px #ffc, 1px -1px 80px #fff;
 		}
+        .wtext
+        {
+            color: #ffffff;
+        }
     </style>
     <link href="css/smoothness/jquery-ui-1.10.2.custom.css" rel="stylesheet">
     <link href="css/w2ui-1.4.1.min.css" rel="stylesheet">
@@ -117,6 +129,7 @@
                         <img src=images/w_target.gif onClick='toggleWin("selection");' title="Target" alt="Target">|
                         <img src=images/w_zoneobj.gif onClick='toggleWin("currentzone");' title="Zone Objects" alt="Zone Objects">|
                         <img src=images/w_editor.gif onClick='toggleWin("editor");' title="Editor" alt="Editor">|
+                        <img src=images/w_editor_q.gif onClick='toggleWin("questeditor");' title="Quest Editor" alt="Quest Editor">|
                         <img src=images/w_toolbar.gif onClick='toggleWin("sidenav");' title="Tool Bar" alt="Tool Bar">|
                         <img src=images/w_settings.gif onClick='toggleWin("settings");' title="Settings" alt="Settings">|
                         <img src=images/w_status.gif onClick='toggleWin("status");' title="Status" alt="Status">|
@@ -129,6 +142,9 @@
     </div>
     <div id=editor title="Editor" class="ui-popup ui_window">
         <iframe border=0 id=editframe></iframe>
+    </div>
+    <div id=questeditor title="Quest Editor" class="ui-popup ui_window">
+        <iframe border=0 id=questeditframe></iframe>
     </div>
     <div id=sidenav title="Tool Bar" class="ui_window">
         <div id=tool_acc_map>
@@ -292,16 +308,16 @@
                 <table border=0 cellspacing=0 cellpadding=2 width=100%>
                     <tr>
                         <td bgcolor=#555555><font color=#FF0000>X:</font>
-                            <input type=text id=selx name=selx size=4 tabindex="-1">
+                            <span id=selx class=wtext></span>
                         </td>
                         <td bgcolor=#555555><font color=#00FF00>Y:</font>
-                            <input type=text id=sely name=sely size=4 tabindex="-1">
+                            <span id=sely class=wtext></span>
                         </td>
                         <td bgcolor=#555555><font color=#0000FF>Z:</font>
-                            <input type=text id=selz name=selz size=4 tabindex="-1">
+                            <span id=selz class=wtext></span>
                         </td>
                         <td bgcolor=#555555><font color=#FF00FF>H:</font>
-                            <input type=text id=selh name=selh size=4 tabindex="-1">
+                            <span id=selh class=wtext></span>
                         </td>
                     </tr>
                     <tr>

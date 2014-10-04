@@ -6,6 +6,8 @@ var _c = {};
 _c.searchform = "ajax/search.php";
 
 _c.editormain = "http://emudev.us.to/peq/";
+_c.questeditormain = "http://emudev.us.to/questedit2/";
+_c.questeditfunction = "loadFileByNPC";
 //_c.editormain = "http://eoc.akkadius.com/AC/eoc/";
 
 //Show the toaster popup for cursor position

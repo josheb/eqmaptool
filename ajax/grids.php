@@ -4,7 +4,7 @@ include("db.inc.php");
 
 $db = getDatabase();
 
-$zid = $_GET['zid'];
+$zid = $_GET['znum'];
 
 // Grids themselves are not versioned
 //$ver = $_GET['ver'];
@@ -12,29 +12,31 @@ $zid = $_GET['zid'];
 
 //$ret = pdoQuery($db, "SELECT * FROM grid_entries JOIN grid ON (grid.id = gridid) WHERE grid_entries.zoneid = '$zid'");
 
-$gridret = pdoQuery($db, "SELECT * FROM grid WHERE zoneid = '$zid'");
-$geret = pdoQuery($db, "SELECT * FROM grid_entries WHERE zoneid = '$zid'");
+$gridret = pdoQuery($db, "SELECT * FROM grid WHERE zoneid = '$zid' ORDER BY id");
+$geret = pdoQuery($db, "SELECT * FROM grid_entries WHERE zoneid = '$zid' ORDER BY gridid, number");
 
 if($geret['error'] or $gridret['error'])
 {
     die("ERROR|" . $e->getMessage());
 }
 
-$grids = array();
+$ret = array();
+$ret['grids'] = array();
+$ret['grid_entries'] = array();
+
 $tg = 0;
 foreach($gridret['rows'] as $r)
 {
-    if(!$grids[$r['id']]) { $grids[$r['id']] = array(); $tg++; }
-    $grids[$r['id']] = $r;
-    $grids[$r['id']]['entries'] = array();
+    $ret['grids'][$r['id']] = $r;
+    $tg++;
 }
 
 foreach($geret['rows'] as $r)
 {
-    $grids[$r['gridid']]['entries'][$r['number']] = $r;
+    if(!$ret['grid_entries'][$r['gridid']]) { $ret['grid_entries'][$r['gridid']] = array(); }
+    $ret['grid_entries'][$r['gridid']][] = $r;
 }
 
-print "GRIDLIST|$tg|" . json_encode($grids);
-
+print "GRIDLIST|$tg|" . json_encode($ret);
 
 ?>
