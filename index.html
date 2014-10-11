@@ -99,6 +99,7 @@
             color: #ffffff;
         }
     </style>
+    <link href="css/font-awesome.min.css" rel="stylesheet">
     <link href="css/smoothness/jquery-ui-1.10.2.custom.css" rel="stylesheet">
     <link href="css/w2ui-1.4.1.min.css" rel="stylesheet">
     <script src="js/jquery-1.9.1.js"></script>
@@ -152,15 +153,19 @@
             <div>
 				<div class="inline_image" style="display:inline">
 					<img src=images/cam_to_cursor.gif onClick='gotoObject(user.cursor);' title="Camera to Cursor" alt="Camera to Cursor">
+                    <h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+X</h4>
 				</div>
 				<div class="inline_image" style="display:inline">
 					<img src=images/cam_to_target.gif onClick='gotoObject(user.curobject);' title="Camera to Selection" alt="Camera to Selection">
+                    <h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+C</h4>
 				</div>
                 <div class="inline_image" style="display:inline">
 					<img src=images/target_to_cursor.gif onClick='selToCursor();' title="Selection to Cursor" alt="Selection to Cursor">
+                    <h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+V</h4>
 				</div>
                 <div class="inline_image" style="display:inline">
 					<img src=images/cursor_to_target.gif onClick='cursorToSel();' title="Cursor to Selection" alt="Cursor to Selection">
+                    <h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+B</h4>
 				</div>
             </div>
         </div>
@@ -169,8 +174,8 @@
             <div>
                 <div id=c_palette></div>
                 <hr>
-                <button type=button onClick='addSpawngroup();' style='width: 100%;'>Add SG to Cursor</button>
-                <button type=button onClick='createSpawngroup();' style='width: 100%;'>Create SG from NPC's at Cursor</button>
+                <button type=button onClick='addSpawngroup();' style='width: 100%;'>Add Spawngroup (Alt+N)</button>
+                <button type=button onClick='createSpawngroup();' style='width: 100%;'>Create Spawngroup (Alt+M)</button>
             </div>
         </div>
         <div id=tool_unsaved>

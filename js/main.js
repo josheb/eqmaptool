@@ -86,6 +86,7 @@ res.mapobjects = {};
 var objmats = {};
 
 var sceneroot;
+var hitscene;
 
 var camera, scene, renderer, loader, mainlight, animationid, clock, controls, framecount;
 
@@ -174,6 +175,33 @@ $(document).ready( function() {
 
 	$(".ui-resizable-w").mouseenter(function() { startText(); });
 	$(".ui-resizable-w").mouseleave(function() { endText(); });
+
+    $(document).keydown(function (e){
+        //console.log('key code is: ' + e.which + ' ' + (e.ctrlKey ? 'Ctrl' : '') + ' ' + (e.shiftKey ? 'Shift' : '') + ' ' + (e.altKey ? 'Alt' : ''));
+        if(e.altKey && e.which == 88){ // Alt + X - Camera To Cursor
+            gotoObject(user.cursor);
+        }
+        if(e.altKey && e.which == 67){ // Alt + C - Camera to Selection
+            gotoObject(user.curobject);
+        }
+        if(e.altKey && e.which == 86){ // Alt + V - Selection to Cursor
+            selToCursor();
+        }
+        if(e.altKey && e.which == 66){ // Alt + B - Cursor to Selection
+            cursorToSel();
+        }
+        if(e.altKey && e.which == 90){ // Find Best Z for Selection
+            selToZ();
+        }
+        if(e.altKey && e.which == 78){ // Add Selected SG
+            addSpawngroup();
+        }
+        if(e.altKey && e.which == 77){ // Create SG From Selected
+            createSpawngroup();
+        }
+        document.getElementById('editor').focus();
+    });
+    document.getElementById('editor').focus();
 });
 
 function toRad(d) { return( parseFloat(d * (Math.PI / 180)) ); }
@@ -345,8 +373,10 @@ function init()
     loader = new THREE.SceneLoader();
 
     THREE.DefaultLoadingManager.onProgress = function ( item, loaded, total ) { loadProgress( item, loaded, total ); };
+    hitscene = new THREE.Object3D();
     sceneroot = new THREE.Object3D();
-    scene.add( sceneroot );
+    scene.add( hitscene );
+    hitscene.add( sceneroot );
 
     //Set up some default resources
     res.cube = new THREE.BoxGeometry(5, 5, 5, 1, 1, 1);
@@ -418,7 +448,7 @@ function init()
     res.mover.add(res.moverz);
     res.mover.add(res.moverh);
 
-    scene.add(res.mover);
+    hitscene.add(res.mover);
 
     res.mover.traverse( function(child) { child.visible = false; } );
 
@@ -568,7 +598,8 @@ function updateGrids(d, gridcount)
     {
         for(var y in res.grids[x])
         {
-            scene.remove(res.grids[x][y]);
+            //scene.remove(res.grids[x][y]);
+            hitscene.remove(res.grids[x][y]);
             res.grids[x][y].remove(res.grids[x][y].userData.hmesh);
         }
     }
@@ -578,17 +609,21 @@ function updateGrids(d, gridcount)
     Z.grids = griddata.grids;
     Z.grid_entries = griddata.grid_entries;
 
+    var lastg;
+
     for(var x in Z.grids)
     {
+        lastg = false;
         for(var y in Z.grid_entries[x])
         {
-            drawGrid(x, y);
+            drawGrid(x, y, lastg);
+            lastg = y;
         }
     }
     renderGridList();
 }
 
-function drawGrid(gid, geid)
+function drawGrid(gid, geid, lastg)
 {
     var x = gid;
     var y = geid;
@@ -604,6 +639,20 @@ function drawGrid(gid, geid)
     //Max heading value is 255.
     res.grids[x][y].rotation.z = toRad( Math.abs(360 - fromEQ(parseFloat(grid.heading))) );
 
+    res.grids[x][y].userData.lastline = false;
+    res.grids[x][y].userData.lastlineg = false;
+    if(lastg)
+    {
+        var lgrid = Z.grid_entries[x][lastg];
+        res.grids[x][y].userData.lastlineg = new THREE.Geometry();
+        res.grids[x][y].userData.lastlineg.vertices.push( new THREE.Vector3(grid.x, grid.y, grid.z * -1) );
+        res.grids[x][y].userData.lastlineg.vertices.push( new THREE.Vector3(lgrid.x, lgrid.y, lgrid.z * -1) );
+        res.grids[x][y].userData.lastline = new THREE.Line(res.grids[x][y].userData.lastlineg, res.linemat);
+        res.grids[x][y].userData.lastline.visible = false;
+        res.grids[x][y].userData.lastline.userData.objtype = "gridline";
+        scene.add(res.grids[x][y].userData.lastline);
+    }
+
     res.grids[x][y].userData.hmesh = new THREE.Line(res.hline, res.linemat);
     res.grids[x][y].userData.hmesh.position.set( 0, 0, 0);
     res.grids[x][y].userData.hmesh.rotation.set( 0, 0, 0);
@@ -616,7 +665,7 @@ function drawGrid(gid, geid)
     res.grids[x][y].add(res.grids[x][y].userData.hmesh);
     res.grids[x][y].visible = false;
     res.grids[x][y].userData.hmesh.visible = false;
-    scene.add(res.grids[x][y]);
+    hitscene.add(res.grids[x][y]);
 }
 
 function renderGridList()
@@ -646,7 +695,8 @@ function updateSpawns(d, spawncount)
 
     for(var x in res.spawns)
     {
-        scene.remove(res.spawns[x]);
+        //scenee.remove(res.spawns[x]);
+        hitscene.remove(res.spawns[x]);
         res.spawns[x].remove(res.spawns[x].userData.hmesh);
     }
 
@@ -685,7 +735,8 @@ function drawSpawn(spid)
     res.spawns[x].userData.entry = Z.spawn2[x].spawngroupID;
     res.spawns[x].userData.dirty = false;
     res.spawns[x].add(res.spawns[x].userData.hmesh);
-    scene.add(res.spawns[x]);
+    //scene.add(res.spawns[x]);
+    hitscene.add(res.spawns[x]);
 }
 
 function renderSpawnList()
@@ -1018,7 +1069,8 @@ function updateCursor()
     projector.unprojectVector( svec, camera );
 
     var ray = new THREE.Raycaster( camera.position, svec.sub(camera.position).normalize(), 0, 10000);
-    var hits = ray.intersectObjects( scene.children, true);
+    //var hits = ray.intersectObjects( scene.children, true);
+    var hits = ray.intersectObjects( hitscene.children, true);
 
     var hx = -1;
     if(hits.length > 0)
@@ -1026,7 +1078,7 @@ function updateCursor()
         //Test object visibility - We could also test object type here for exclusions or specific modes.
         for(hc = 0; hc < hits.length; hc++)
         {
-            if(hits[hc].object.visible && hits[hc].object.userData.objtype != 'heading') { hx = hc; break; }
+            if(hits[hc].object.visible && hits[hc].object.userData.objtype != 'heading' && hits[hc].object.userData.objtype != 'gridline') { hx = hc; break; }
         }
 
         if(hx < 0) { return; }
@@ -1130,32 +1182,65 @@ function setTarget(tp, id1, id2, obj)
     res.mover.traverse( function(child) { child.visible = true; } );
 
     //TODO: Set up a template system by type
-    var infostr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
 
-    var sgid = Z.spawn2[id1].spawngroupID;
-
-//    log("Grid: " + spawnlist.pathgrid);
-
-    for(var x in Z.spawnentry[sgid])
+    switch(tp)
     {
-        var npc = Z.npc_types[Z.spawnentry[sgid][x].npcID];
-        infostr += "<tr><td><a href='javascript:void(0);' onClick='editQuest(" + npc.id + ");'>" + npc.name + "</a></td><td>L" + npc.level + "</td><td align=right>";
-        infostr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + sgid + ", npcid: " + npc.id + "});'>"+ Z.spawnentry[sgid][x].chance + "% </a>&nbsp; ";
-        infostr += "<img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.id + " });' title='Edit NPC'>";
-        infostr += "<img src=images/add.gif onClick='addToPalette(\"npc\", " + npc.id + ", " + id1 + ", " + x + ");' title='Add NPC to Palette'></td></tr>";
+        case "spawn":
+            var infostr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
+            var sgid = Z.spawn2[id1].spawngroupID;
+            var pathid = Z.spawn2[id1].pathgrid;
+
+            for(var x in Z.spawnentry[sgid])
+            {
+                var npc = Z.npc_types[Z.spawnentry[sgid][x].npcID];
+                infostr += "<tr><td><a href='javascript:void(0);' onClick='editQuest(" + npc.id + ");'>" + npc.name + "</a></td><td>L" + npc.level + "</td><td align=right>";
+                infostr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + sgid + ", npcid: " + npc.id + "});'>"+ Z.spawnentry[sgid][x].chance + "% </a>&nbsp; ";
+                infostr += "<img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.id + " });' title='Edit NPC'>";
+                infostr += "<img src=images/add.gif onClick='addToPalette(\"npc\", " + npc.id + ", " + id1 + ", " + x + ");' title='Add NPC to Palette'></td></tr>";
+            }
+            infostr += "</table>";
+            $("#sel_info").empty();
+            $("#sel_info").append(infostr);
+        
+            $("#sel_heading").empty();
+            var spawnstr = "<b>" + tp + ": <input type=text name='selname' id='selname' value=''></b>";
+            spawnstr += "<img src=images/edit.gif title=\"Edit Spawn Group\" onClick='editItem(\"spawn\", { spawnid: " + sgid + "});'>";
+            spawnstr += "<img src=images/edit.gif title=\"Edit Spawn2\" onClick='editItem(\"spawn2\", { spawn2id: " + id1 + "});'>";
+            spawnstr += "<img src=images/add.gif onClick='addToPalette(\"spawngroup\", " + id1 + ", -1, -1);' title='Add SpawnGroup to Palette'><br>";
+            spawnstr += "Path Grid: " + pathid;
+            $("#sel_heading").append( spawnstr );
+            $("#selname").val(Z.spawngroup[sgid].name);
+
+            //Add a spawn object vis toggle above to solve grids inside spawns.
+
+            //Q&D, would be better to just test the lastobject and only hide its grid
+            if(pathid > 0)
+            {
+                for(var x in Z.grid_entries)
+                {
+                    for(var y in Z.grid_entries[x])
+                    {
+                        if(x == pathid)
+                        {
+                            res.grids[x][y].visible = true;
+                            res.grids[x][y].userData.hmesh.visible = true;
+                            res.grids[x][y].userData.lastline.visible = true;
+                        }
+                        else
+                        {
+                            res.grids[x][y].visible = false;
+                            res.grids[x][y].userData.hmesh.visible = false;
+                            res.grids[x][y].userData.lastline.visible = false;
+                        }
+                    }
+                }
+            }
+            break;
+
+        case "grid":
+            break;
     }
-    infostr += "</table>";
-    $("#sel_info").empty();
-    $("#sel_info").append(infostr);
-
-    $("#sel_heading").empty();
-    var spawnstr = "<b>" + tp + ": <input type=text name='selname' id='selname' value=''></b>";
-    spawnstr += "<img src=images/edit.gif title=\"Edit Spawn Group\" onClick='editItem(\"spawn\", { spawnid: " + sgid + "});'>";
-    spawnstr += "<img src=images/edit.gif title=\"Edit Spawn2\" onClick='editItem(\"spawn2\", { spawn2id: " + id1 + "});'>";
-    spawnstr += "<img src=images/add.gif onClick='addToPalette(\"spawngroup\", " + id1 + ", -1, -1);' title='Add SpawnGroup to Palette'>";
-    $("#sel_heading").append( spawnstr );
-    $("#selname").val(Z.spawngroup[sgid].name);
-
+        
     updateSelPos();
 }
 
@@ -1282,7 +1367,7 @@ function resetSelPos()
             res.mover.position.set( active.x, active.y, active.z * -1);
             setSaved(user.curobject);
         }
-    }    
+    }
 }
 
 function ToggleHEdit()

@@ -108,8 +108,8 @@ THREE.FlyControls = function ( object, domElement ) {
 			case 81: /*Q*/ this.moveState.rollLeft = 0; break;
 			case 69: /*E*/ this.moveState.rollRight = 0; break;
 
-            case 88: /*X*/ this.togglePause(); break;
-            case 77: /*M*/ this.toggleMouseLook(); break;
+            //case 88: /*X*/ this.togglePause(); break;
+            //case 77: /*M*/ this.toggleMouseLook(); break;
 		}
 
 		this.updateMovementVector();
