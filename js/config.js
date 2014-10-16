@@ -1,5 +1,9 @@
 //TODO: This script needs to be loaded dynamically so that it can be managed from a login framework.
 
+// This is getting kind of convoluted and messy.
+// It will carry on that way until the configuration needs are more completely known, then it can be re-organized.
+// We're trying to be flexible, but the fact is, this will probably always use defaults and switch between two main editor configs.
+
 //Global Config
 var _c = {};
 
@@ -23,6 +27,13 @@ _c.ops.addspawngroup = "ajax/addspawngroup.php";
 _c.ops.newspawngroup = "ajax/newspawngroup.php";
 //Add an NPC to the currently selected spawngroup
 _c.ops.addnpc = "ajax/addnpc.php";
+//Add a grid
+_c.ops.addgrid = "ajax/addgrid.php";
+//Add a grid entry
+_c.ops.addgridentry = "ajax/addgridentry.php";
+
+//General form saving
+_c.ops.formsave = "ajax/formsave.php";
 
 //All links get passed the following:
     //zonesn

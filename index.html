@@ -98,6 +98,15 @@
         {
             color: #ffffff;
         }
+        #sel_extra
+        {
+            height: 150px;
+            overflow: auto;
+        }
+        .fm_field
+        {
+            font-size: 10px;
+        }
     </style>
     <link href="css/font-awesome.min.css" rel="stylesheet">
     <link href="css/smoothness/jquery-ui-1.10.2.custom.css" rel="stylesheet">
@@ -167,6 +176,7 @@
 					<img src=images/cursor_to_target.gif onClick='cursorToSel();' title="Cursor to Selection" alt="Cursor to Selection">
                     <h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+B</h4>
 				</div>
+<br>&nbsp;
             </div>
         </div>
         <div id=tool_palette>
@@ -306,10 +316,6 @@
         <div id=acc_sel_o>
             <h3>Options</h3>
             <div>
-                <div id=sel_options></div>
-                <div id=sel_heading>
-                </div>
-                <hr>
                 <table border=0 cellspacing=0 cellpadding=2 width=100%>
                     <tr>
                         <td bgcolor=#555555><font color=#FF0000>X:</font>
@@ -345,6 +351,9 @@
 						</td>
 					</tr>
                 </table>
+                <div id=sel_options></div>
+                <div id=sel_heading></div>
+                <div id=sel_extra></div>
             </div>
         </div>
     </div>

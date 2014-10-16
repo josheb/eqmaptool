@@ -34,7 +34,7 @@ foreach($gridret['rows'] as $r)
 foreach($geret['rows'] as $r)
 {
     if(!$ret['grid_entries'][$r['gridid']]) { $ret['grid_entries'][$r['gridid']] = array(); }
-    $ret['grid_entries'][$r['gridid']][] = $r;
+    $ret['grid_entries'][$r['gridid']][$r['number']] = $r;
 }
 
 print "GRIDLIST|$tg|" . json_encode($ret);

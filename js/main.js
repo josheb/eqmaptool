@@ -176,6 +176,7 @@ $(document).ready( function() {
 	$(".ui-resizable-w").mouseenter(function() { startText(); });
 	$(".ui-resizable-w").mouseleave(function() { endText(); });
 
+    //Akka hotkeys, slightly adjusted and moved from index.html (Alt+1,2,3 does tab swaps in chrome on linux, perhaps others)
     $(document).keydown(function (e){
         //console.log('key code is: ' + e.which + ' ' + (e.ctrlKey ? 'Ctrl' : '') + ' ' + (e.shiftKey ? 'Shift' : '') + ' ' + (e.altKey ? 'Alt' : ''));
         if(e.altKey && e.which == 88){ // Alt + X - Camera To Cursor
@@ -237,59 +238,6 @@ function getZoneData()
     //$.get(_c.datatypes.object.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('objects', stat, err); });
     //$.get(_c.datatypes.groundspawn.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('groundspawns', stat, err); });
 }
-
-// Older data loading functions
-function getSpawns()
-{
-    if(requests.spawns) { return; }
-
-    var qs = {};
-    qs.zn = currentzone;
-    qs.ver = settings.version;
-    $.get(_c.datatypes.spawn.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('spawns', stat, err); });
-}
-
-function getGrids()
-{
-    if(requests.grids) { return; }
-
-    var qs = {};
-    qs.zn = currentzone;
-    qs.zid = zonedata[currentzone].zoneidnumber;
-    qs.ver = settings.version;
-    $.get(_c.datatypes.grid.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('grids', stat, err); });
-}
-
-function getDoors()
-{
-    if(requests.doors) { return; }
-
-    var qs = {};
-    qs.zn = currentzone;
-    qs.ver = settings.version;
-    $.get(_c.datatypes.doors.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('doors', stat, err); });
-}
-
-function getObjects()
-{
-    if(requests.objects) { return; }
-
-    var qs = {};
-    qs.zn = currentzone;
-    qs.ver = settings.version;
-    $.get(_c.datatypes.object.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('objects', stat, err); });
-}
-
-function getGroundSpawns()
-{
-    if(requests.groundspawns) { return; }
-
-    var qs = {};
-    qs.zn = currentzone;
-    qs.ver = settings.version;
-    $.get(_c.datatypes.groundspawn.src, qs, function(data) { procData(data); }).fail( function(obj, stat, err) { reqFail('groundspawns', stat, err); });
-}
-// END
 
 function reqFail(rtype, stat, err)
 {
@@ -393,16 +341,7 @@ function init()
     res.hline.vertices.push( new THREE.Vector3(2, 5, 0) );
     res.hline.vertices.push( new THREE.Vector3(-2, 5, 0) );
     res.hline.vertices.push( new THREE.Vector3(0, 12, 0) );
-/*
-    res.hline.vertices.push( new THREE.Vector3(0, 0, 0) );
-    res.hline.vertices.push( new THREE.Vector3(12, 0, 0) );
-    res.hline.vertices.push( new THREE.Vector3(5, 0, 2) );
-    res.hline.vertices.push( new THREE.Vector3(5, 0, -2) );
-    res.hline.vertices.push( new THREE.Vector3(12, 0, 0) );
-    res.hline.vertices.push( new THREE.Vector3(5, 2, 0) );
-    res.hline.vertices.push( new THREE.Vector3(5, -2, 0) );
-    res.hline.vertices.push( new THREE.Vector3(12, 0) );
-*/
+
     res.wiremat = new THREE.MeshBasicMaterial( { "color": 0xFF0000, "wireframe": true, "wireframeLinewidth": 1 } );
     //res.wiremat = new THREE.MeshBasicMaterial( { "color": 0xFF0000, "wireframe": false, "wireframeLinewidth": 1 } );
     res.spawnmat = new THREE.MeshPhongMaterial( { "color": 0x00FF00, "ambient": 0x00FF00, "emissive": 0x44FF44, "opacity": 0.6, "transparent": true } );
@@ -524,6 +463,24 @@ function procData(d)
             log("Spawn Saved: " + count);
             break;
 
+        case "GRIDSAVE":
+            var gret = JSON.parse(data);
+            var gid = gret.id2;
+            Z.grid_entries[count][gid].x = gret.x;
+            Z.grid_entries[count][gid].y = gret.y;
+            Z.grid_entries[count][gid].z = gret.z;
+            Z.grid_entries[count][gid].heading = gret.heading;
+            setSaved(res.grids[count][gid]);
+            renderGridList();
+            log("Grid Entry Saved: " + count + "-" + gid);
+            break;
+
+        case "FORMSAVE":
+            var fret = JSON.parse(data);
+            //log("Element Saved. " + fret.form);
+            $("#"+fret.form).css("background-color", "#55FF55");
+            break;
+
         case "SEARCH":
             //In this case count is the search type
             showSearch(data, count);
@@ -601,6 +558,11 @@ function updateGrids(d, gridcount)
             //scene.remove(res.grids[x][y]);
             hitscene.remove(res.grids[x][y]);
             res.grids[x][y].remove(res.grids[x][y].userData.hmesh);
+            if(res.grids[x][y].userData.lastline)
+            {
+                scene.remove(res.grids[x][y].userData.lastline);
+                res.grids[x][y].userData.lastlineg.dispose();
+            }
         }
     }
 
@@ -641,6 +603,10 @@ function drawGrid(gid, geid, lastg)
 
     res.grids[x][y].userData.lastline = false;
     res.grids[x][y].userData.lastlineg = false;
+
+    res.grids[x][y].userData.nextGrid = -1;
+    res.grids[x][y].userData.prevGrid = -1;
+
     if(lastg)
     {
         var lgrid = Z.grid_entries[x][lastg];
@@ -650,6 +616,11 @@ function drawGrid(gid, geid, lastg)
         res.grids[x][y].userData.lastline = new THREE.Line(res.grids[x][y].userData.lastlineg, res.linemat);
         res.grids[x][y].userData.lastline.visible = false;
         res.grids[x][y].userData.lastline.userData.objtype = "gridline";
+
+        //Set up links so we can easily traverse from a given target.
+        res.grids[x][lastg].userData.nextGrid = y;
+        res.grids[x][y].userData.prevGrid = lastg;
+
         scene.add(res.grids[x][y].userData.lastline);
     }
 
@@ -1194,7 +1165,10 @@ function setTarget(tp, id1, id2, obj)
             {
                 var npc = Z.npc_types[Z.spawnentry[sgid][x].npcID];
                 infostr += "<tr><td><a href='javascript:void(0);' onClick='editQuest(" + npc.id + ");'>" + npc.name + "</a></td><td>L" + npc.level + "</td><td align=right>";
-                infostr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + sgid + ", npcid: " + npc.id + "});'>"+ Z.spawnentry[sgid][x].chance + "% </a>&nbsp; ";
+                //infostr += "<a href='javascript:void();' onClick='editItem(\"npcchance\", { spawnid: " + sgid + ", npcid: " + npc.id + "});'>"+ Z.spawnentry[sgid][x].chance + "% </a>&nbsp; ";
+                var fmid = "fm_spawnchance_"+sgid+"-"+x+"-"+npc.id;
+                infostr += "<input id="+fmid+" type=text size=3 class=fm_field onChange='";
+                infostr += "saveForm(this, { fmtype: \"spawnchance\", spawnid: " + sgid + ", entryid: " + x + ", npcid: " + npc.id + "});' value=\"" + Z.spawnentry[sgid][x].chance + "\">%&nbsp; ";
                 infostr += "<img src=images/edit.gif onClick='editItem(\"npc\", { npcid: " + npc.id + " });' title='Edit NPC'>";
                 infostr += "<img src=images/add.gif onClick='addToPalette(\"npc\", " + npc.id + ", " + id1 + ", " + x + ");' title='Add NPC to Palette'></td></tr>";
             }
@@ -1203,7 +1177,8 @@ function setTarget(tp, id1, id2, obj)
             $("#sel_info").append(infostr);
         
             $("#sel_heading").empty();
-            var spawnstr = "<b>" + tp + ": <input type=text name='selname' id='selname' value=''></b>";
+            var spawnstr = "<b>" + tp + ": <input type=text name='selname' id='selname' value='' size=15></b>";
+            spawnstr += "<img src=images/goto.gif title=\"Go to spawn\" onClick='gotoObject(res.spawns[" + id1 + "]);'>";
             spawnstr += "<img src=images/edit.gif title=\"Edit Spawn Group\" onClick='editItem(\"spawn\", { spawnid: " + sgid + "});'>";
             spawnstr += "<img src=images/edit.gif title=\"Edit Spawn2\" onClick='editItem(\"spawn2\", { spawn2id: " + id1 + "});'>";
             spawnstr += "<img src=images/add.gif onClick='addToPalette(\"spawngroup\", " + id1 + ", -1, -1);' title='Add SpawnGroup to Palette'><br>";
@@ -1211,30 +1186,29 @@ function setTarget(tp, id1, id2, obj)
             $("#sel_heading").append( spawnstr );
             $("#selname").val(Z.spawngroup[sgid].name);
 
-            //Add a spawn object vis toggle above to solve grids inside spawns.
-
-            //Q&D, would be better to just test the lastobject and only hide its grid
-            if(pathid > 0)
+            //Set up a list of grids for traversal, hide and show accordingly.
+            var gridstr = "";
+            for(var x in Z.grids)
             {
-                for(var x in Z.grid_entries)
+                for(var y in Z.grid_entries[x])
                 {
-                    for(var y in Z.grid_entries[x])
+                    if(x == pathid && pathid != 0)
                     {
-                        if(x == pathid)
-                        {
-                            res.grids[x][y].visible = true;
-                            res.grids[x][y].userData.hmesh.visible = true;
-                            res.grids[x][y].userData.lastline.visible = true;
-                        }
-                        else
-                        {
-                            res.grids[x][y].visible = false;
-                            res.grids[x][y].userData.hmesh.visible = false;
-                            res.grids[x][y].userData.lastline.visible = false;
-                        }
+                        res.grids[x][y].visible = true;
+                        res.grids[x][y].userData.hmesh.visible = true;
+                        res.grids[x][y].userData.lastline.visible = true;
+                        gridstr += "<div><img src=images/goto.gif title=\"Go to grid\" onClick='gotoObject(res.grids["+x+"]["+y+"]);'> Grid " + x + "-" + y + "</div>";
+                    }
+                    else
+                    {
+                        res.grids[x][y].visible = false;
+                        res.grids[x][y].userData.hmesh.visible = false;
+                        res.grids[x][y].userData.lastline.visible = false;
                     }
                 }
             }
+            $("#sel_extra").empty();
+            $("#sel_extra").append(gridstr);
             break;
 
         case "grid":
@@ -1270,6 +1244,50 @@ function updateSelPos()
         $("#sely").html( parseFloat(user.curobject.position.y).toFixed(2) );
         $("#selz").html( parseFloat(user.curobject.position.z).toFixed(2) );
         $("#selh").html( toEQ( 360 - toDeg(parseFloat(user.curobject.rotation.z)) ).toFixed(2) );
+    }
+
+    if(user.curtype == "grid")
+    {
+        updateGridLines(user.curobject.userData.uid, user.curobject.userData.entry);
+    }
+}
+
+function updateGridLines(gx, gy)
+{
+    //var grid = Z.grid_entries[gx][gy];
+    var grid = res.grids[gx][gy].position;
+
+    if(res.grids[gx][gy].userData.prevGrid != -1)
+    {
+        //var lgrid = Z.grid_entries[gx][res.grids[gx][gy].prevGrid];
+        var lgrid = res.grids[gx][res.grids[gx][gy].userData.prevGrid].position;
+        var active = res.grids[gx][gy];
+
+        //log(res.grids[gx][gy].userData.prevGrid);
+        //log(lgrid.x + "-"+lgrid.y+"-"+lgrid.z);
+        //log(user.curobject.position.x+"-"+user.curobject.position.y+"-"+user.curobject.position.z);
+        active.userData.lastline.geometry.vertices[0].x = parseFloat(lgrid.x);
+        active.userData.lastline.geometry.vertices[0].y = parseFloat(lgrid.y);
+        active.userData.lastline.geometry.vertices[0].z = parseFloat(lgrid.z);
+        active.userData.lastline.geometry.vertices[1].x = parseFloat(user.curobject.position.x);
+        active.userData.lastline.geometry.vertices[1].y = parseFloat(user.curobject.position.y);
+        active.userData.lastline.geometry.vertices[1].z = parseFloat(user.curobject.position.z);
+        active.userData.lastline.geometry.verticesNeedUpdate = true;
+    }
+
+    if(res.grids[gx][gy].userData.nextGrid != -1)
+    {
+        //var ngrid = Z.grid_entries[gx][res.grids[gx][gy].userData.nextGrid];
+        var ngrid = res.grids[gx][res.grids[gx][gy].userData.nextGrid].position;
+        var active = res.grids[gx][res.grids[gx][gy].userData.nextGrid];
+
+        active.userData.lastline.geometry.vertices[0].x = parseFloat(ngrid.x);
+        active.userData.lastline.geometry.vertices[0].y = parseFloat(ngrid.y);
+        active.userData.lastline.geometry.vertices[0].z = parseFloat(ngrid.z);
+        active.userData.lastline.geometry.vertices[1].x = parseFloat(user.curobject.position.x);
+        active.userData.lastline.geometry.vertices[1].y = parseFloat(user.curobject.position.y);
+        active.userData.lastline.geometry.vertices[1].z = parseFloat(user.curobject.position.z);
+        active.userData.lastline.geometry.verticesNeedUpdate = true;
     }
 }
 
@@ -1324,6 +1342,11 @@ function saveSelPos()
                 savedest = _c.datatypes.spawn.save;
                 break;
 
+            case "grid":
+                active = res.grids[user.curobject.userData.uid][user.curobject.userData.entry];
+                savedest = _c.datatypes.grid.save;
+                break;
+
             default:
                 break;
         }
@@ -1339,6 +1362,8 @@ function saveSelPos()
             spdata.type = user.curtype;
             spdata.id = user.curobject.userData.uid;
             spdata.id2 = user.curobject.userData.entry;
+            spdata.znum = zonedata[currentzone].zoneidnumber;
+            spdata.zid = zonedata[currentzone].id;
             //log("Save Object: " + user.curtype + "-" + active.position.x + ", " + active.position.y + ", " + active.position.z + ", " + fixedhead );
             $.post(savedest, spdata, function(data) { procData(data); });
         }
@@ -1356,6 +1381,10 @@ function resetSelPos()
                 active = Z.spawn2[user.curobject.userData.uid];
                 break;
 
+            case "grid":
+                active = Z.grid_entries[user.curobject.userData.uid][user.curobject.userData.entry];
+                break;
+
             default:
                 break;
         }
@@ -1366,6 +1395,7 @@ function resetSelPos()
             user.curobject.rotation.z = toRad(360 - fromEQ(parseFloat(active.heading)));
             res.mover.position.set( active.x, active.y, active.z * -1);
             setSaved(user.curobject);
+            if(user.curtype == "grid") { updateGridLines(user.curobject.userData.uid, user.curobject.userData.entry); }
         }
     }
 }
@@ -1640,6 +1670,14 @@ function editQuest(npcid)
 
     document.getElementById('questeditframe').contentWindow[_c.questeditfunction](currentzone, npc.name);
     if(!$('#questeditor').dialog("isOpen")) { $('#questeditor').dialog("open"); }    
+}
+
+function saveForm(sender, dt)
+{
+    var url = _c.ops.formsave;
+    dt.chance = $(sender).val();
+    $(sender).css("background-color", "#FF5555");
+    $.post(url, dt, function(data) { procData(data); });
 }
 
 //TODO: Implement this.  The dodgy part is figuring out what chance to use.
