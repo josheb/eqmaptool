@@ -96,6 +96,8 @@ user.curobject = "";
 user.curtype = "";
 user.lastdist = 200;
 user.curdist = 200;
+user.lastspawn = -1;
+user.lastgrid = -1;
 
 var mousepos = { x: -1, y: -1, movex: -1, movey: -1 };
 
@@ -481,6 +483,30 @@ function procData(d)
             $("#"+fret.form).css("background-color", "#55FF55");
             break;
 
+        case "ADDGRID":
+            var newid = count;
+            var gdata = JSON.parse(data);
+            log("Added grid: " + newid + " for spawn " + gdata.sid);
+            Z.grids[newid] = gdata.grid;
+            Z.grid_entries[newid] = {};
+            Z.spawn2[gdata.sid].pathgrid = newid;
+            renderGridList();
+            setTarget("spawn", gdata.sid, -1, res.spawns[gdata.sid]);
+            break;
+
+        case "ADDGRIDENTRY":
+            var newnum = count;
+            var gedata = JSON.parse(data);
+            Z.grid_entries[gedata.grid_entry.gridid][newnum] = gedata.grid_entry;
+
+            var lnum = false;
+            if(gedata.lastnum > -1) { lnum = gedata.lastnum; }
+
+            drawGrid(gedata.grid_entry.gridid, gedata.grid_entry.number, lnum);
+            renderGridList();
+            setTarget("spawn", user.lastspawn, -1, res.spawns[user.lastspawn]);
+            break;
+
         case "SEARCH":
             //In this case count is the search type
             showSearch(data, count);
@@ -716,7 +742,10 @@ function renderSpawnList()
 
    for(var x in Z.spawn2)
    {
-        sgid = Z.spawn2[x].spawngroupID;
+        var sgid = Z.spawn2[x].spawngroupID;
+
+        //It is possible to get spawn2 entries with an empty spawngroup.
+        if(!Z.spawngroup[sgid]) { continue; }
 
         spawnstr += "<tr><td class=tdul>" + Z.spawngroup[sgid].name + "</td><td class=tdul>" + parseFloat(Z.spawn2[x].x).toFixed(2) + ", " + parseFloat(Z.spawn2[x].y).toFixed(2) + ", " + parseFloat(Z.spawn2[x].z).toFixed(2) + "</td>";
         spawnstr += "<td class=tdul><nobr><img src=images/goto.gif title=\"Goto Spawn\" onClick='gotoObject(res.spawns[" + x + "]); setTarget(\"spawn\", " + x + ", -1, res.spawns[" + x + "]);'> ";
@@ -1162,6 +1191,8 @@ function setTarget(tp, id1, id2, obj)
             var sgid = Z.spawn2[id1].spawngroupID;
             var pathid = Z.spawn2[id1].pathgrid;
 
+            user.lastspawn = id1;
+
             for(var x in Z.spawnentry[sgid])
             {
                 var npc = Z.npc_types[Z.spawnentry[sgid][x].npcID];
@@ -1205,7 +1236,7 @@ function setTarget(tp, id1, id2, obj)
             }
             else
             {
-                spawnstr += "<button type=button>Create Grid</button>";
+                spawnstr += "<button type=button onClick='createGrid("+id1+");'>Create Grid</button>";
             }
             spawnstr += "<hr>";
             $("#sel_heading").append( spawnstr );
@@ -1239,6 +1270,7 @@ function setTarget(tp, id1, id2, obj)
             break;
 
         case "grid":
+            user.lastgrid = id1;
             break;
     }
         
@@ -1255,8 +1287,19 @@ function clearTarget()
     user.curobject = "";
     user.curtype = "";
 
+    for(var x in Z.grids)
+    {
+        for(var y in Z.grid_entries[x])
+        {
+            res.grids[x][y].visible = false;
+            res.grids[x][y].userData.hmesh.visible = false;
+            res.grids[x][y].userData.lastline.visible = false;
+        }
+    }
+
     $("#sel_info").empty();
     $("#sel_heading").empty();
+    $("#sel_extra").empty();
     $("#selx").html( "0" );
     $("#sely").html( "0" );
     $("#selz").html( "0" );
@@ -1322,7 +1365,7 @@ function gotoObject(obj)
 {
     if(obj.position)
     {
-        camera.position.set( parseFloat(obj.position.x), parseFloat(obj.position.y), parseFloat(obj.position.z - 20) );
+        camera.position.set( parseFloat(obj.position.x), parseFloat(obj.position.y), parseFloat(obj.position.z - 40) );
         camera.lookAt(obj.position);
     }
 }
@@ -1706,6 +1749,37 @@ function saveForm(sender, dt)
     dt.data = $(sender).val();
     $(sender).css("background-color", "#FF5555");
     $.post(url, dt, function(data) { procData(data); });
+}
+
+function createGrid(sid)
+{
+    var pd = {};
+    pd.znum = zonedata[currentzone].zoneidnumber;
+    pd.sid = sid;
+    $.post(_c.ops.addgrid, pd, function(data) { procData(data); });
+}
+
+function addGridEntry()
+{
+    var gid = -1;
+    if(user.curtype == "grid")
+    {
+        gid = user.curobject.userData.uid;
+    }
+    if(user.curtype == "spawn")
+    {
+        gid = Z.spawn2[user.curobject.userData.uid].pathgrid;
+    }
+    if(gid < 0) { return; }
+
+    var pdata = {};
+    pdata.x = user.cursor.position.x;
+    pdata.y = user.cursor.position.y;
+    pdata.z = (user.cursor.position.z + getZOffset(user.cursor, "grid")) * -1;
+    pdata.znum = zonedata[currentzone].zoneidnumber;
+    pdata.gid = gid;
+
+    $.post(_c.ops.addgridentry, pdata, function(data) { procData(data); });
 }
 
 //TODO: Implement this.  The dodgy part is figuring out what chance to use.
