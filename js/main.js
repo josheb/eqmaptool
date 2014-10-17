@@ -215,7 +215,7 @@ function fromEQ(d) { return( 360 * (d/255) ); }
 function toggleWin(id)
 {
     if($('#'+id).dialog("isOpen")) { $('#'+id).dialog("close"); }
-    else { $('#'+id).dialog("open"); }
+    else { $('#'+id).dialog("open"); $('#'+id).dialog("moveToTop"); }
 }
 
 function getZones()
@@ -267,9 +267,9 @@ function init()
     mainlight.position = camera.position;
     scene.add( mainlight );
 
-    $("#sidenav").dialog({ width: 300, height: 400, position: { my: "left top", at: "left bottom", of: $("#toolbar") } });
-    $("#editor").dialog({ width: 800, height: 600, position: { my: "left top", at: "left bottom", of: $("#toolbar") }, autoOpen: false });
-    $("#questeditor").dialog({ width: 800, height: 600, position: { my: "left top", at: "left bottom", of: $("#toolbar") }, autoOpen: false });
+    $("#sidenav").dialog({ width: 300, height: 500, position: { my: "left top", at: "left bottom+5", of: $("#toolbar") } });
+    $("#editor").dialog({ width: 800, height: 600, position: { my: "left top", at: "right+2 top-25", of: $("#sidenav") }, autoOpen: false });
+    $("#questeditor").dialog({ width: 800, height: 600, position: { my: "left top", at: "right+2 top-25", of: $("#sidenav") }, autoOpen: false });
     $("#zonemenu").dialog({ width: 500, height: 500, position: { my: "center", at: "center", of: window }, autoOpen: false});
     $("#settings").dialog({ width: 400, height: 300, position: { my: "center", at: "center", of: window }, autoOpen: false });
     $("#currentzone").dialog({ width: 600, height: 700, position: { my: "top", at: "top", of: window }, autoOpen: false });
@@ -1138,6 +1138,7 @@ function editItem(tp, data)
 
     $('#editframe').attr('src', page);
     if(!$('#editor').dialog("isOpen")) { $('#editor').dialog("open"); }
+    $('#editor').dialog("moveToTop");
 }
 
 function setTarget(tp, id1, id2, obj)
@@ -1183,6 +1184,30 @@ function setTarget(tp, id1, id2, obj)
             spawnstr += "<img src=images/edit.gif title=\"Edit Spawn2\" onClick='editItem(\"spawn2\", { spawn2id: " + id1 + "});'>";
             spawnstr += "<img src=images/add.gif onClick='addToPalette(\"spawngroup\", " + id1 + ", -1, -1);' title='Add SpawnGroup to Palette'><br>";
             spawnstr += "Path Grid: " + pathid;
+
+            if(pathid > 0)
+            {
+                spawnstr += "<br>Type: <select name=gridtype id='fm_gridtype_"+pathid+"' onChange='saveForm(this, { fmtype: \"gridtype\", gid: "+pathid+", znum: "+zonedata[currentzone].zoneidnumber+"});'>";
+                spawnstr += "<option value=" + Z.grids[pathid].type + ">" + gridtypes[Z.grids[pathid].type] + "</option>";
+                for(var i in gridtypes)
+                {
+                    if(i == Z.grids[pathid].type) { continue; }
+                    spawnstr += "<option value="+i+">"+gridtypes[i]+"</option>";
+                }
+                spawnstr += "</select><br>Pause: <select name=pausetype id='fm_pausetype_"+pathid+"' onChange='saveForm(this, { fmtype: \"pausetype\", gid: "+pathid+", znum: "+zonedata[currentzone].zoneidnumber+"});'>";
+                spawnstr += "<option value=" + Z.grids[pathid].type2 + ">" + pausetypes[Z.grids[pathid].type2] + "</option>";
+                for(var i in pausetypes)
+                {
+                    if(i == Z.grids[pathid].type2) { continue; }
+                    spawnstr += "<option value="+i+">"+pausetypes[i]+"</option>";
+                }
+                spawnstr += "</select>";
+            }
+            else
+            {
+                spawnstr += "<button type=button>Create Grid</button>";
+            }
+            spawnstr += "<hr>";
             $("#sel_heading").append( spawnstr );
             $("#selname").val(Z.spawngroup[sgid].name);
 
@@ -1197,7 +1222,9 @@ function setTarget(tp, id1, id2, obj)
                         res.grids[x][y].visible = true;
                         res.grids[x][y].userData.hmesh.visible = true;
                         res.grids[x][y].userData.lastline.visible = true;
-                        gridstr += "<div><img src=images/goto.gif title=\"Go to grid\" onClick='gotoObject(res.grids["+x+"]["+y+"]);'> Grid " + x + "-" + y + "</div>";
+                        var iid = "fm_gridpause_" + x + "-" + y;
+                        gridstr += "<div><img src=images/goto.gif title=\"Go to grid\" onClick='gotoObject(res.grids["+x+"]["+y+"]);'> ";
+                        gridstr += "Pause: <input id='"+iid+"' class='fm_field' type=text size=2 value='" + Z.grid_entries[x][y].pause + "' onChange='saveForm(this, { fmtype: \"gridpause\", id1: "+x+", id2: "+y+", znum: "+zonedata[currentzone].zoneidnumber+"});'> Grid " + x + "-" + y + "</div>";
                     }
                     else
                     {
@@ -1669,13 +1696,14 @@ function editQuest(npcid)
     var npc = Z.npc_types[npcid];
 
     document.getElementById('questeditframe').contentWindow[_c.questeditfunction](currentzone, npc.name);
-    if(!$('#questeditor').dialog("isOpen")) { $('#questeditor').dialog("open"); }    
+    if(!$('#questeditor').dialog("isOpen")) { $('#questeditor').dialog("open"); }
+    $('#questeditor').dialog("moveToTop");
 }
 
 function saveForm(sender, dt)
 {
     var url = _c.ops.formsave;
-    dt.chance = $(sender).val();
+    dt.data = $(sender).val();
     $(sender).css("background-color", "#FF5555");
     $.post(url, dt, function(data) { procData(data); });
 }
