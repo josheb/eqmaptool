@@ -67,6 +67,7 @@ Z.spawngroup = {};
 Z.zone_points = {};
 
 var zonedata;
+var znames = [];
 
 var currentzone = "";
 
@@ -269,7 +270,7 @@ function init()
     mainlight.position = camera.position;
     scene.add( mainlight );
 
-    $("#sidenav").dialog({ width: 300, height: 500, position: { my: "left top", at: "left bottom+5", of: $("#toolbar") } });
+    $("#sidenav").dialog({ width: 300, height: 500, position: { my: "left top", at: "left bottom+8", of: $("#toolbar") } });
     $("#editor").dialog({ width: 800, height: 600, position: { my: "left top", at: "right+2 top-25", of: $("#sidenav") }, autoOpen: false });
     $("#questeditor").dialog({ width: 800, height: 600, position: { my: "left top", at: "right+2 top-25", of: $("#sidenav") }, autoOpen: false });
     $("#zonemenu").dialog({ width: 500, height: 500, position: { my: "center", at: "center", of: window }, autoOpen: false});
@@ -553,6 +554,9 @@ function updateZonelist(d)
         content += "<tr><td " + cols[c] + ">" + zd.short_name + "</td><td " + cols[c] + ">" + zd.long_name + "</td><td " + cols[c] + ">";
         if(zd.file_exists)
         {
+            //List zones we have maps for for the input box
+            znames.push(zd.short_name);
+
             content += "<button type=button onClick='loadZone(\"" + zd.short_name + "\");'>Load</button>";
         }
         else
@@ -565,6 +569,7 @@ function updateZonelist(d)
     }
     content += "</table>";
 
+    $("#zselect").w2field("combo", { items: znames, match: "contains", onRequest: function() { alert("request"); }, onChange: function() { alert("change"); } });
     $("#zonecontent").html(content);
 	
 	/* Load From GET */
@@ -1780,6 +1785,12 @@ function addGridEntry()
     pdata.gid = gid;
 
     $.post(_c.ops.addgridentry, pdata, function(data) { procData(data); });
+}
+
+function procZone()
+{
+    loadZone($("#zselect").val());
+    return(false);
 }
 
 //TODO: Implement this.  The dodgy part is figuring out what chance to use.

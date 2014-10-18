@@ -134,6 +134,8 @@
             <tr>
                 <td valign=top>
                     <div id=info></div>
+                    <button type=button onClick='toggleWin("zonemenu");' style='background-color: #55FF55;' id=zlbutton>Zone List</button>
+                    <form method=get onSubmit="return procZone();" style="display: inline;"><input type=text name=zselect id=zselect></form>
                 </td>
                 <td valign=top>
                     <nobr>
@@ -145,7 +147,6 @@
                         <img src=images/w_settings.gif onClick='toggleWin("settings");' title="Settings" alt="Settings">|
                         <img src=images/w_status.gif onClick='toggleWin("status");' title="Status" alt="Status">|
                         <img src=images/w_help.gif onClick='toggleWin("help");' title="Help" alt="Help">|
-                        <button type=button onClick='toggleWin("zonemenu");' style='background-color: #55FF55;' id=zlbutton>Zone List</button>
                     </nobr>
                 </td>
             </tr>
@@ -223,7 +224,7 @@
         </div>
     </div>
     <div id=settings title="Settings" class="ui-base ui_window">
-        <form method=get onSubmit='return(false);'>
+        <form name=settingsform method=get onSubmit='return(false);'>
             <table border=0 cellspacing=0 cellpadding=2 width=100%>
                 <tr>
                     <td>Camera Speed</td>
