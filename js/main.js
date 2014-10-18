@@ -181,7 +181,7 @@ $(document).ready( function() {
 
     //Akka hotkeys, slightly adjusted and moved from index.html (Alt+1,2,3 does tab swaps in chrome on linux, perhaps others)
     $(document).keydown(function (e){
-        //console.log('key code is: ' + e.which + ' ' + (e.ctrlKey ? 'Ctrl' : '') + ' ' + (e.shiftKey ? 'Shift' : '') + ' ' + (e.altKey ? 'Alt' : ''));
+        console.log('key code is: ' + e.which + ' ' + (e.ctrlKey ? 'Ctrl' : '') + ' ' + (e.shiftKey ? 'Shift' : '') + ' ' + (e.altKey ? 'Alt' : ''));
         if(e.altKey && e.which == 88){ // Alt + X - Camera To Cursor
             gotoObject(user.cursor);
         }
@@ -202,6 +202,9 @@ $(document).ready( function() {
         }
         if(e.altKey && e.which == 77){ // Create SG From Selected
             createSpawngroup();
+        }
+        if(e.altKey && e.which == 71){ // Create Grid
+            addGridEntry();
         }
         document.getElementById('editor').focus();
     });
