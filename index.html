@@ -178,6 +178,13 @@
 					<img src=images/cursor_to_target.gif onClick='cursorToSel();' title="Cursor to Selection" alt="Cursor to Selection">
                     <h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+B</h4>
 				</div>
+                <div class="inline_image" style="display:inline">
+                    <a href="javascript:void(0);" onClick="ToggleHEdit();">
+                        <img src=images/button_blank.gif title="Edit Heading" alt="Edit Heading"> 
+                        <i class="fa fa-compass button_awesome_font_icon" style="font-size:30px"></i>
+                    <h4 style="text-shadow: 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000, -1px 0 0 #000;" class="text_inline_image">Alt+,</h4>
+                    </a>
+                </div>
 <br>&nbsp;
             </div>
         </div>
@@ -345,7 +352,7 @@
                             <button type=button onClick='resetSelPos();'>Reset</button>
                         </td>
                         <td>
-                            <button type=button onClick='editSel();'>Edit</button>
+                            <button type=button onClick='ToggleHEdit();'>Heading</button>
                         </td>
                     </tr>
 					<tr>

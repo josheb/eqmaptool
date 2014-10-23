@@ -145,10 +145,10 @@ $(document).ready( function() {
     //$(document).click( function(event) { mousepos.x = event.clientX; mousepos.y = event.clientY; updateCursor(); });
     window.setInterval( function() { updateFPS(); }, 1000);
 
-    $(document.forms[0].s_version).val(settings.version);
-    $(document.forms[0].s_speed).val(settings.movespeed);
-    $(document.forms[0].s_spawntime).val(settings.spawntime);
-    $(document.forms[0].s_spawnvariance).val(settings.spawnvariance);
+    $(document.forms['settingsform'].s_version).val(settings.version);
+    $(document.forms['settingsform'].s_speed).val(settings.movespeed);
+    $(document.forms['settingsform'].s_spawntime).val(settings.spawntime);
+    $(document.forms['settingsform'].s_spawnvariance).val(settings.spawnvariance);
 
     /* Stop camera functions when a text box is focused. */
     //$("input").on("focus", function() { startText(); });
@@ -205,6 +205,9 @@ $(document).ready( function() {
         }
         if(e.altKey && e.which == 71){ // Create Grid
             addGridEntry();
+        }
+        if(e.altKey && e.which == 188){ // Adjust heading
+            ToggleHEdit();
         }
         document.getElementById('editor').focus();
     });
@@ -1011,10 +1014,10 @@ function log(m)
 function updateSettings()
 {
     var ov = settings.version;
-    settings.movespeed = $(document.forms[0].s_speed).val();
-    settings.version = $(document.forms[0].s_version).val();
-    settings.spawntime = $(document.forms[0].s_spawntime).val();
-    settings.spawnvariance = $(document.forms[0].s_spawnvariance).val();
+    settings.movespeed = $(document.forms['settingsform'].s_speed).val();
+    settings.version = $(document.forms['settingsform'].s_version).val();
+    settings.spawntime = $(document.forms['settingsform'].s_spawntime).val();
+    settings.spawnvariance = $(document.forms['settingsform'].s_spawnvariance).val();
 
     settings.mapmat = $('input[name=s_mapmat]:checked').val();
 
