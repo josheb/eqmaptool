@@ -681,12 +681,12 @@ function renderGridList()
     var gridstr = "<table border=0 cellspacing=0 cellpadding=2 width=100%>";
     for(var x in Z.grids) // id, zoneid, type, type2
     {
-        gridstr += "<tr><td class=tdul>Grid " + x + "</td><td class=tdul>" + gridtypes[Z.grids[x].type] + "</td><td class=tdul>" + pausetypes[Z.grids[x].type2] + "</td></tr>";
+        gridstr += "<tr><td class=tdul>Grid " + x + "</td><td class=tdul>" + gridtypes[Z.grids[x].type] + "</td><td class=tdul>" + pausetypes[Z.grids[x].type2] + "</td><td class=tdul><button onClick='displayGrid("+x+");'>Show</button></td></tr>";
 
         for(var y in Z.grid_entries[x]) // gridid, zoneid, number, x, y, z, heading, pause
         {
             var grid = Z.grid_entries[x][y];
-            gridstr += "<tr><td> &nbsp; &nbsp; " + grid.number + "</td><td>" + grid.x + "," + grid.y + "," + grid.z + "</td><td>Pause: " + grid.pause + "</td></tr>";
+            gridstr += "<tr><td> &nbsp; &nbsp; " + grid.number + "</td><td>" + grid.x + "," + grid.y + "," + grid.z + "</td><td colspan=2>Pause: " + grid.pause + "</td></tr>";
         }
     }
 
@@ -1253,6 +1253,7 @@ function setTarget(tp, id1, id2, obj)
             $("#sel_heading").append( spawnstr );
             $("#selname").val(Z.spawngroup[sgid].name);
 
+/*
             //Set up a list of grids for traversal, hide and show accordingly.
             var gridstr = "";
             for(var x in Z.grids)
@@ -1278,6 +1279,8 @@ function setTarget(tp, id1, id2, obj)
             }
             $("#sel_extra").empty();
             $("#sel_extra").append(gridstr);
+*/
+            displayGrid(pathid);
             break;
 
         case "grid":
@@ -1286,6 +1289,34 @@ function setTarget(tp, id1, id2, obj)
     }
         
     updateSelPos();
+}
+
+function displayGrid(pathid)
+{
+            var gridstr = "";
+            for(var x in Z.grids)
+            {
+                for(var y in Z.grid_entries[x])
+                {
+                    if(x == pathid && pathid != 0)
+                    {
+                        res.grids[x][y].visible = true;
+                        res.grids[x][y].userData.hmesh.visible = true;
+                        res.grids[x][y].userData.lastline.visible = true;
+                        var iid = "fm_gridpause_" + x + "-" + y;
+                        gridstr += "<div><img src=images/goto.gif title=\"Go to grid\" onClick='gotoObject(res.grids["+x+"]["+y+"]);'> ";
+                        gridstr += "Pause: <input id='"+iid+"' class='fm_field' type=text size=2 value='" + Z.grid_entries[x][y].pause + "' onChange='saveForm(this, { fmtype: \"gridpause\", id1: "+x+", id2: "+y+", znum: "+zonedata[currentzone].zoneidnumber+"});'> Grid " + x + "-" + y + "</div>";
+                    }
+                    else
+                    {
+                        res.grids[x][y].visible = false;
+                        res.grids[x][y].userData.hmesh.visible = false;
+                        res.grids[x][y].userData.lastline.visible = false;
+                    }
+                }
+            }
+            $("#sel_extra").empty();
+            $("#sel_extra").append(gridstr);
 }
 
 function clearTarget()
